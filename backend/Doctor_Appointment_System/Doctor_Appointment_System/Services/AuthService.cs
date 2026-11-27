@@ -13,17 +13,20 @@ public class AuthService : IAuthService
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IJwtTokenService _jwtTokenService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
+        IJwtTokenService jwtTokenService,
         ILogger<AuthService> logger)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _roleManager = roleManager;
+        _jwtTokenService = jwtTokenService;
         _logger = logger;
     }
 
@@ -56,7 +59,7 @@ public class AuthService : IAuthService
                     false,
                     StatusCodes.Status400BadRequest,
                     "Registration failed",
-                    createUserResult.Errors.Select(error => error.Description).ToArray());
+                    Errors: createUserResult.Errors.Select(error => error.Description).ToArray());
             }
 
             if (!await _roleManager.RoleExistsAsync(PatientRole))
@@ -74,19 +77,30 @@ public class AuthService : IAuthService
                 return new AuthResult(false, StatusCodes.Status500InternalServerError, "Registration could not be completed");
             }
 
-            _dbContext.Patients.Add(new Patient
+            var patient = new Patient
             {
                 UserId = user.Id,
                 DateOfBirth = request.DateOfBirth!.Value,
                 Gender = request.Gender!.Value,
                 PhoneNumber = request.PhoneNumber.Trim(),
                 Address = request.Address.Trim()
-            });
+            };
+            _dbContext.Patients.Add(patient);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            return new AuthResult(true, StatusCodes.Status201Created, "Patient registered successfully");
+            var token = _jwtTokenService.CreateToken(user, patient, PatientRole);
+            return new AuthResult(
+                true,
+                StatusCodes.Status201Created,
+                "Patient registered successfully",
+                new AuthResponse(
+                    true,
+                    "Patient registered successfully",
+                    token.Token,
+                    token.ExpiresAt,
+                    new AuthUserResponse(patient.PatientId, user.FullName, user.Email!, PatientRole)));
         }
         catch (Exception exception)
         {
@@ -94,5 +108,43 @@ public class AuthService : IAuthService
             _logger.LogError(exception, "Patient registration failed for {Email}.", email);
             return new AuthResult(false, StatusCodes.Status500InternalServerError, "Registration could not be completed");
         }
+    }
+
+    public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    {
+        var email = request.Email.Trim();
+        var invalidCredentials = new AuthResult(false, StatusCodes.Status401Unauthorized, "Invalid email or password");
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user is null || !await _userManager.CheckPasswordAsync(user, request.Password))
+        {
+            return invalidCredentials;
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        if (!roles.Contains(PatientRole, StringComparer.OrdinalIgnoreCase))
+        {
+            return invalidCredentials;
+        }
+
+        var patient = await _dbContext.Patients
+            .AsNoTracking()
+            .SingleOrDefaultAsync(currentPatient => currentPatient.UserId == user.Id, cancellationToken);
+        if (patient is null)
+        {
+            return invalidCredentials;
+        }
+
+        var token = _jwtTokenService.CreateToken(user, patient, PatientRole);
+        return new AuthResult(
+            true,
+            StatusCodes.Status200OK,
+            "Login successful",
+            new AuthResponse(
+                true,
+                "Login successful",
+                token.Token,
+                token.ExpiresAt,
+                new AuthUserResponse(patient.PatientId, user.FullName, user.Email!, PatientRole)));
     }
 }

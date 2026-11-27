@@ -13,6 +13,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Patient> Patients => Set<Patient>();
 
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+
+    public DbSet<Doctor> Doctors => Set<Doctor>();
+
+    public DbSet<Speciality> Specialities => Set<Speciality>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

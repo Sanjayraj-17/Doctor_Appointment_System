@@ -1,11 +1,12 @@
 
 import { Component, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   FormBuilder,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
+import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
   selector: 'app-patient-register',
@@ -15,12 +16,8 @@ import {
   styleUrl: './patient-register.css'
 })
 export class PatientRegister {
-  private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
-
-  // Replace xxxx with your backend HTTPS port.
-  private readonly apiUrl =
-    'https://localhost:7243/api/Auth/register';
 
   isSubmitting = false;
   successMessage = '';
@@ -47,19 +44,28 @@ export class PatientRegister {
 
     this.isSubmitting = true;
 
-    this.http.post(this.apiUrl, this.registerForm.getRawValue()).subscribe({
-      next: () => {
-        this.successMessage = 'Patient registered successfully!';
+    this.authService.register(this.registerForm.getRawValue()).subscribe({
+      next: response => {
+        this.authService.saveSession(response);
         this.registerForm.reset();
         this.isSubmitting = false;
+        this.successMessage = this.authService.navigateToDashboardIfConfigured()
+          ? ''
+          : 'Registration successful. The Patient Dashboard route is not configured yet.';
       },
       error: (error: HttpErrorResponse) => {
-        this.errorMessage =
-          error.error?.message ||
-          'Registration failed. Please try again.';
-
+        this.errorMessage = this.getErrorMessage(error, 'Registration failed. Please try again.');
         this.isSubmitting = false;
       }
     });
+  }
+
+  private getErrorMessage(error: HttpErrorResponse, fallback: string): string {
+    const apiErrors = error.error?.errors as Record<string, string[]> | undefined;
+    const validationMessage = apiErrors
+      ? Object.values(apiErrors).flat().join(' ')
+      : '';
+
+    return validationMessage || error.error?.message || fallback;
   }
 }
