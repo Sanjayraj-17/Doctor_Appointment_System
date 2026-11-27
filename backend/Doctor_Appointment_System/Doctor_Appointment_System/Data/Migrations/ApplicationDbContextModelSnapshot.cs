@@ -164,11 +164,14 @@ namespace Doctor_Appointment_System.Data.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("DoctorId");
 
                     b.HasIndex("SpecialityId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Doctors");
                 });
@@ -418,6 +421,12 @@ namespace Doctor_Appointment_System.Data.Migrations
                     b.HasOne("Doctor_Appointment_System.Models.Speciality", "Speciality")
                         .WithMany()
                         .HasForeignKey("SpecialityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Doctor_Appointment_System.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
