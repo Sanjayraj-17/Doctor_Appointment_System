@@ -1,0 +1,28 @@
+
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+
+# .NET
+[Bb]in/
+[Oo]bj/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+coverage/
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
