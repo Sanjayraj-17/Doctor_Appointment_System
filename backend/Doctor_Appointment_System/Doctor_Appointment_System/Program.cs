@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Doctor_Appointment_System.Data;
 using Doctor_Appointment_System.Models;
 using Doctor_Appointment_System.Services;
+using Doctor_Appointment_System.Services.Implementations;
 using Doctor_Appointment_System.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,8 @@ builder.Services
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -52,18 +55,10 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    if (!await roleManager.RoleExistsAsync("Patient"))
-    {
-        var roleResult = await roleManager.CreateAsync(new IdentityRole("Patient"));
-        if (!roleResult.Succeeded)
-        {
-            throw new InvalidOperationException("The Patient role could not be created.");
-        }
-    }
-}
+await IdentitySeeder.SeedAsync(
+    app.Services,
+    app.Configuration,
+    app.Environment);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

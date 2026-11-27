@@ -1,6 +1,9 @@
 ﻿
 using Doctor_Appointment_System.Data;
+using Doctor_Appointment_System.DTOs.Doctor;
 using Doctor_Appointment_System.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,13 +14,17 @@ namespace Doctor_Appointment_System.Controllers;
 public class DoctorController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public DoctorController(ApplicationDbContext context)
+    public DoctorController(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _userManager = userManager;
     }
 
-    // GET: api/doctor
+    // GET: api/Doctor
     [HttpGet]
     public async Task<IActionResult> GetAllDoctors()
     {
@@ -29,7 +36,7 @@ public class DoctorController : ControllerBase
         return Ok(doctors);
     }
 
-    // GET: api/doctor/5
+    // GET: api/Doctor/5
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDoctorById(int id)
     {
@@ -44,7 +51,7 @@ public class DoctorController : ControllerBase
         return Ok(doctor);
     }
 
-    // GET: api/doctor/search?specialityId=1
+    // GET: api/Doctor/search?specialityId=1
     [HttpGet("search")]
     public async Task<IActionResult> SearchDoctors(
         [FromQuery] int? specialityId)
@@ -65,21 +72,62 @@ public class DoctorController : ControllerBase
         return Ok(doctors);
     }
 
-    // POST: api/doctor
+    // POST: api/Doctor
+    // Admin only: creates a profile for an existing Doctor Identity user.
     [HttpPost]
-    public async Task<IActionResult> CreateDoctor(Doctor doctor)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateDoctor(
+        [FromBody] CreateDoctorRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
+        var user = await _userManager.FindByIdAsync(request.UserId);
+
+        if (user == null)
+            return BadRequest(new
+            {
+                message = "Identity user not found."
+            });
+
+        var isDoctor = await _userManager.IsInRoleAsync(user, "Doctor");
+
+        if (!isDoctor)
+            return BadRequest(new
+            {
+                message = "The selected user does not have the Doctor role."
+            });
+
+        var doctorProfileExists = await _context.Doctors
+            .AnyAsync(d => d.UserId == request.UserId);
+
+        if (doctorProfileExists)
+            return Conflict(new
+            {
+                message = "A Doctor profile already exists for this user."
+            });
+
         var specialityExists = await _context.Specialities
-            .AnyAsync(s => s.SpecialityId == doctor.SpecialityId);
+            .AnyAsync(s => s.SpecialityId == request.SpecialityId);
 
         if (!specialityExists)
-            return BadRequest(new { message = "Invalid speciality ID." });
+            return BadRequest(new
+            {
+                message = "Invalid speciality ID."
+            });
 
-        doctor.DoctorId = 0;
-        doctor.Speciality = null;
+        var doctor = new Doctor
+        {
+            UserId = request.UserId,
+            SpecialityId = request.SpecialityId,
+            Qualification = request.Qualification.Trim(),
+            ExperienceYears = request.ExperienceYears,
+            ConsultationFee = request.ConsultationFee,
+            Bio = string.IsNullOrWhiteSpace(request.Bio)
+                ? null
+                : request.Bio.Trim(),
+            IsActive = true
+        };
 
         _context.Doctors.Add(doctor);
         await _context.SaveChangesAsync();
@@ -90,53 +138,70 @@ public class DoctorController : ControllerBase
             doctor);
     }
 
-    // PUT: api/doctor/5
+    // PUT: api/Doctor/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateDoctor(
-        int id, Doctor updatedDoctor)
+        int id,
+        [FromBody] UpdateDoctorRequest request)
     {
-        if (id != updatedDoctor.DoctorId)
-            return BadRequest(new { message = "Doctor ID mismatch." });
-
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var doctor = await _context.Doctors.FindAsync(id);
 
         if (doctor == null)
-            return NotFound(new { message = "Doctor not found." });
+            return NotFound(new
+            {
+                message = "Doctor not found."
+            });
 
         var specialityExists = await _context.Specialities
-            .AnyAsync(s => s.SpecialityId == updatedDoctor.SpecialityId);
+            .AnyAsync(s => s.SpecialityId == request.SpecialityId);
 
         if (!specialityExists)
-            return BadRequest(new { message = "Invalid speciality ID." });
+            return BadRequest(new
+            {
+                message = "Invalid speciality ID."
+            });
 
-        doctor.SpecialityId = updatedDoctor.SpecialityId;
-        doctor.Qualification = updatedDoctor.Qualification;
-        doctor.ExperienceYears = updatedDoctor.ExperienceYears;
-        doctor.ConsultationFee = updatedDoctor.ConsultationFee;
-        doctor.Bio = updatedDoctor.Bio;
-        doctor.IsActive = updatedDoctor.IsActive;
+        doctor.SpecialityId = request.SpecialityId;
+        doctor.Qualification = request.Qualification.Trim();
+        doctor.ExperienceYears = request.ExperienceYears;
+        doctor.ConsultationFee = request.ConsultationFee;
+        doctor.Bio = string.IsNullOrWhiteSpace(request.Bio)
+            ? null
+            : request.Bio.Trim();
+        doctor.IsActive = request.IsActive;
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Doctor updated successfully." });
+        return Ok(new
+        {
+            message = "Doctor updated successfully."
+        });
     }
 
-    // DELETE: api/doctor/5
+    // DELETE: api/Doctor/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteDoctor(int id)
     {
         var doctor = await _context.Doctors.FindAsync(id);
 
         if (doctor == null)
-            return NotFound(new { message = "Doctor not found." });
+            return NotFound(new
+            {
+                message = "Doctor not found."
+            });
 
         doctor.IsActive = false;
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Doctor deactivated successfully." });
+        return Ok(new
+        {
+            message = "Doctor deactivated successfully."
+        });
     }
 }
