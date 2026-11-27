@@ -126,9 +126,9 @@ namespace Doctor_Appointment_System.Data.Migrations
 
                     b.HasKey("AppointmentId");
 
-                    b.HasIndex("DoctorId");
+                    b.HasIndex("DoctorId", "AppointmentDate");
 
-                    b.HasIndex("PatientId");
+                    b.HasIndex("PatientId", "AppointmentDate");
 
                     b.ToTable("Appointments");
                 });
