@@ -1,0 +1,32 @@
+<div class="admin-dashboard">
+  <header class="dashboard-header">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Manage doctors and patient appointments</p>
+    </div>
+
+    <a class="logout-button" routerLink="/admin-login">Logout</a>
+  </header>
+
+  <section class="dashboard-section">
+    <div class="section-heading">
+      <div>
+        <h2>Doctor Management</h2>
+        <p>Add doctors who should appear in the patient dashboard.</p>
+      </div>
+
+      <button type="button" routerLink="/admin-add-doctor">
+        Add Doctor
+      </button>
+    </div>
+  </section>
+
+  <section class="dashboard-section">
+    <h2>Patient Bookings</h2>
+    <p>Review appointment requests and confirm or reject them.</p>
+
+    <div class="empty-state">
+      <p>No appointment requests to display yet.</p>
+    </div>
+  </section>
+</div>

@@ -24,4 +24,26 @@ export const routes: Routes = [
       import('./features/auth/patient-register/patient-register')
         .then((m) => m.PatientRegister),
   },
+  {
+    path: 'patient-dashboard',
+    loadComponent: () =>
+      import('./features/home/home').then((m) => m.Home),
+  },
+  {
+    path: 'book-appointment/:doctorId',
+    loadComponent: () =>
+      import('./features/booking/booking').then((m) => m.Booking),
+  },
+  {
+  path: 'admin-dashboard',
+  loadComponent: () =>
+    import('./features/admin-dashboard/admin-dashboard')
+      .then((m) => m.AdminDashboard),
+},
+{
+  path: 'admin-add-doctor',
+  loadComponent: () =>
+    import('./features/admin-add-doctor/admin-add-doctor')
+      .then((m) => m.AdminAddDoctor),
+},
 ];

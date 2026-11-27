@@ -1,1 +1,132 @@
-<p>home works!</p>
+<div class="dashboard">
+  <header class="topbar">
+    <a class="brand" routerLink="/patient-dashboard">CarePoint</a>
+
+    <nav>
+      <a class="active" routerLink="/patient-dashboard">Dashboard</a>
+      <a href="#appointments">My Appointments</a>
+      <a routerLink="/patient-login">Logout</a>
+    </nav>
+  </header>
+
+  <main class="content">
+    <section class="welcome">
+      <div>
+        <p class="eyebrow">PATIENT DASHBOARD</p>
+        <h1>Welcome back!</h1>
+        <p>Find a doctor and manage your appointments in one place.</p>
+      </div>
+
+      <a class="primary-btn" href="#doctors">Find a Doctor</a>
+    </section>
+
+    <section class="search-panel">
+      <div>
+        <h2>Find the right doctor</h2>
+        <p>Search by doctor name or medical specialty.</p>
+      </div>
+
+      <input
+        type="search"
+        placeholder="Search doctors or specialties..."
+        [(ngModel)]="searchTerm"
+        aria-label="Search doctors or specialties"
+      />
+    </section>
+
+    <section id="doctors" class="section">
+      <div class="section-heading">
+        <div>
+          <h2>Available Doctors</h2>
+          <p>Browse doctors and their next available time.</p>
+        </div>
+      </div>
+
+      <div class="doctor-grid">
+        <article class="doctor-card" *ngFor="let doctor of filteredDoctors">
+          <div class="doctor-avatar">{{ doctor.name.charAt(0) }}</div>
+
+          <div class="doctor-info">
+            <h3>{{ doctor.name }}</h3>
+            <p class="specialty">{{ doctor.specialty }}</p>
+            <p class="muted">{{ doctor.experience }}</p>
+          </div>
+
+          <span
+            class="availability"
+            [class.unavailable]="!doctor.available"
+          >
+            {{ doctor.available ? 'Available' : 'Unavailable' }}
+          </span>
+
+          <div class="doctor-details">
+            <span>Consultation fee</span>
+            <strong>₹{{ doctor.fee }}</strong>
+          </div>
+
+          <div class="doctor-details">
+            <span>Next available</span>
+            <strong>{{ doctor.nextSlot }}</strong>
+          </div>
+
+         <button
+  type="button"
+  [disabled]="!doctor.available"
+  [routerLink]="['/book-appointment', doctor.id]"
+>
+  {{ doctor.available ? 'Book Appointment' : 'Not Available' }}
+</button>
+        </article>
+
+        <p class="empty-state" *ngIf="doctors.length === 0">
+          No doctors have been added yet. Please check back later.
+        </p>
+
+        <p
+          class="empty-state"
+          *ngIf="doctors.length > 0 && filteredDoctors.length === 0"
+        >
+          No doctors match your search. Try another name or specialty.
+        </p>
+      </div>
+    </section>
+
+    <section id="appointments" class="section">
+      <div class="section-heading">
+        <div>
+          <h2>My Appointments</h2>
+          <p>Keep track of your upcoming visits.</p>
+        </div>
+      </div>
+
+      <div class="appointment-list">
+        <article
+          class="appointment-card"
+          *ngFor="let appointment of appointments"
+        >
+          <div>
+            <h3>{{ appointment.doctor }}</h3>
+            <p>{{ appointment.specialty }}</p>
+          </div>
+
+          <div class="appointment-date">
+            <strong>{{ appointment.date }}</strong>
+            <span>{{ appointment.time }}</span>
+          </div>
+
+          <span
+            class="status"
+            [class.pending]="appointment.status === 'Pending'"
+          >
+            {{ appointment.status }}
+          </span>
+        </article>
+
+        <p class="empty-state" *ngIf="appointments.length === 0">
+          You don't have any appointments yet. Your booked appointments will
+          appear here.
+        </p>
+      </div>
+    </section>
+  </main>
+</div>

@@ -3,7 +3,7 @@
     <h1>Admin Login</h1>
     <p class="subtitle">Sign in to manage the appointment system</p>
 
-    <form>
+    <form (ngSubmit)="login()">
       <div class="form-field">
         <label for="email">Admin email <span>*</span></label>
         <input

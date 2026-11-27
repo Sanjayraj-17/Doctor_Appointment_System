@@ -1,0 +1,134 @@
+<div class="booking-page">
+  <header class="topbar">
+    <a class="brand" routerLink="/patient-dashboard">CarePoint</a>
+    <a routerLink="/patient-dashboard">Back to Dashboard</a>
+  </header>
+
+  <main class="booking-content">
+    <ng-container *ngIf="doctor; else doctorNotFound">
+      <section class="page-heading">
+        <p class="eyebrow">APPOINTMENT BOOKING</p>
+        <h1>Book an Appointment</h1>
+        <p>Select a date and available time slot for your visit.</p>
+      </section>
+
+      <section class="doctor-summary">
+        <div class="doctor-avatar">{{ doctor.name.charAt(0) }}</div>
+
+        <div>
+          <h2>{{ doctor.name }}</h2>
+          <p>{{ doctor.specialty }}</p>
+          <p>{{ doctor.experience }}</p>
+          <strong>Consultation fee: ₹{{ doctor.fee }}</strong>
+        </div>
+      </section>
+
+      <section class="booking-form" *ngIf="!bookingConfirmed">
+        <div class="form-section">
+          <label for="appointmentDate">1. Choose appointment date</label>
+          <input
+            id="appointmentDate"
+            type="date"
+            [(ngModel)]="appointmentDate"
+            [min]="today"
+            name="appointmentDate"
+          />
+        </div>
+
+        <div class="form-section">
+          <h2>2. Choose an available time slot</h2>
+
+          <div class="slot-list">
+            <button
+              type="button"
+              *ngFor="let slot of availableSlots"
+              [class.selected]="selectedSlot === slot"
+              (click)="selectedSlot = slot"
+            >
+              {{ slot }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label for="reason">3. Reason for appointment (optional)</label>
+          <textarea
+            id="reason"
+            [(ngModel)]="reason"
+            name="reason"
+            rows="3"
+            maxlength="500"
+            placeholder="Briefly describe the reason for your visit"
+          ></textarea>
+        </div>
+
+        <button
+          class="primary-btn"
+          type="button"
+          [disabled]="!appointmentDate || !selectedSlot"
+          (click)="openConfirmation()"
+        >
+          Review and Confirm
+        </button>
+      </section>
+
+      <section class="booking-success" *ngIf="bookingConfirmed">
+        <h2>Booking confirmed in this demo</h2>
+        <p>Your appointment details are shown below.</p>
+        <p><strong>Doctor:</strong> {{ doctor.name }}</p>
+        <p><strong>Date:</strong> {{ appointmentDate }}</p>
+        <p><strong>Time:</strong> {{ selectedSlot }}</p>
+        <a class="primary-btn" routerLink="/patient-dashboard">
+          Back to Dashboard
+        </a>
+      </section>
+    </ng-container>
+
+    <ng-template #doctorNotFound>
+      <section class="empty-state">
+        <h2>Doctor not found</h2>
+        <p>We couldn't find the selected doctor.</p>
+        <a class="primary-btn" routerLink="/patient-dashboard">
+          Return to Dashboard
+        </a>
+      </section>
+    </ng-template>
+  </main>
+
+  <!-- Booking confirmation dialog -->
+  <div
+    class="dialog-backdrop"
+    *ngIf="showConfirmation"
+    (click)="closeConfirmation()"
+  >
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmationTitle"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="confirmationTitle">Confirm your appointment</h2>
+      <p>Please review your appointment details.</p>
+
+      <div class="confirmation-details">
+        <p><strong>Doctor:</strong> {{ doctor?.name }}</p>
+        <p><strong>Specialty:</strong> {{ doctor?.specialty }}</p>
+        <p><strong>Date:</strong> {{ appointmentDate }}</p>
+        <p><strong>Time:</strong> {{ selectedSlot }}</p>
+        <p><strong>Consultation fee:</strong> ₹{{ doctor?.fee }}</p>
+        <p *ngIf="reason"><strong>Reason:</strong> {{ reason }}</p>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" (click)="closeConfirmation()">
+          Go Back
+        </button>
+
+        <button type="button" class="primary-btn" (click)="confirmBooking()">
+          Confirm Booking
+        </button>
+      </div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,143 @@
+:host {
+  display: block;
+}
+
+.admin-dashboard {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 32px;
+  background: #f4f6fa;
+  color: #1f2937;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-header,
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-header {
+  margin-bottom: 28px;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 8px;
+  color: #1e3a8a;
+}
+
+.dashboard-header p,
+.dashboard-section p {
+  color: #64748b;
+}
+
+.dashboard-section {
+  margin-bottom: 24px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 5%);
+}
+
+.dashboard-section h2 {
+  margin: 0 0 8px;
+}
+
+.section-heading {
+  margin-bottom: 20px;
+}
+
+.section-heading p {
+  margin-bottom: 0;
+}
+
+button,
+.logout-button {
+  display: inline-block;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: #1e40af;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button:hover,
+.logout-button:hover {
+  background: #1d4ed8;
+}
+
+.doctor-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.doctor-form h3 {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+}
+
+.doctor-form label {
+  align-self: end;
+  color: #475569;
+}
+
+.doctor-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.cancel-button {
+  background: #64748b;
+}
+
+.cancel-button:hover {
+  background: #475569;
+}
+
+.empty-state {
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .admin-dashboard {
+    padding: 16px;
+  }
+
+  .dashboard-header,
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .doctor-form {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-form h3,
+  .form-actions {
+    grid-column: auto;
+  }
+}

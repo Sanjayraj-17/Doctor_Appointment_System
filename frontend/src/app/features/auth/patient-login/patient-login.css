@@ -124,7 +124,16 @@ a:focus-visible {
   outline: 2px solid #183b66;
   outline-offset: 3px;
 }
-
+ .admin-link {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+}
+.login-page .login-form > a.admin-link {
+  display: block;
+  width: fit-content;
+  margin: 16px auto 0;
+}
 @media (max-width: 600px) {
   .login-page {
     padding: 20px 12px;
@@ -137,4 +146,5 @@ a:focus-visible {
   form {
     gap: 12px;
   }
+ 
 }

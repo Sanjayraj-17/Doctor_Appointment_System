@@ -2,7 +2,7 @@
   <section class="register-form">
     <h1>Patient Registration Form</h1>
 
-    <form>
+   <form (ngSubmit)="registrationSuccessful()">
       <div class="form-field">
         <label for="fullName">Full name <span>*</span></label>
         <input
