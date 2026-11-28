@@ -1,35 +1,66 @@
-<div class="login-page">
-  <section class="login-form">
+<div class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </div>
+
+    <nav class="portal-tabs" aria-label="Select portal login">
+      <a class="portal-tab active" routerLink="/patient-login">Patient</a>
+      <a class="portal-tab" routerLink="/doctor-login">Doctor</a>
+      <a class="portal-tab" routerLink="/admin-login">Admin</a>
+    </nav>
+
     <h1>Patient Login</h1>
-    <p class="subtitle">Sign in to manage your appointments</p>
+    <p class="subtitle">Sign in to manage your appointments and health profile</p>
 
-  <form (ngSubmit)="loginSuccessful()">
-      <label for="email">Email address</label>
-      <input
-        id="email"
-        type="email"
-        name="email"
-        placeholder="Enter your email"
-        required
-      />
+    <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-field">
+        <label for="email">Email address <span>*</span></label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="Enter your email address"
+          autocomplete="email"
+        />
+        @if (loginForm.controls.email.touched && loginForm.controls.email.invalid) {
+          <small class="field-error">Enter a valid email address.</small>
+        }
+      </div>
 
-      <label for="password">Password</label>
-      <input
-        id="password"
-        type="password"
-        name="password"
-        placeholder="Enter your password"
-        required
-      />
+      <div class="form-field">
+        <label for="password">Password <span>*</span></label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+        />
+        @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
+          <small class="field-error">Password is required.</small>
+        }
+      </div>
 
-      <button type="submit">Login</button>
+      @if (successMessage) {
+        <p class="success-message" role="status">{{ successMessage }}</p>
+      }
+
+      @if (errorMessage) {
+        <p class="error-message" role="alert">{{ errorMessage }}</p>
+      }
+
+      <button class="auth-submit" type="submit" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Signing in...' : 'Login as Patient' }}
+      </button>
+
+      <div class="auth-footer-links">
+        <span>
+          Don't have an account?
+          <a routerLink="/patient-register">Register here</a>
+        </span>
+      </div>
     </form>
-
-    <p class="register-link">
-      Don't have an account?
-      <a href="/patient-register">Register here</a>
-    </p>
-
-    <a class="admin-link" href="/admin-login">Admin login</a>
   </section>
 </div>

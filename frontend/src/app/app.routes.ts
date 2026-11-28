@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/auth/auth.guard';
+import { roleGuard } from './core/auth/role.guard';
 
 export const routes: Routes = [
   {
@@ -19,6 +21,12 @@ export const routes: Routes = [
         .then((m) => m.AdminLogin),
   },
   {
+    path: 'doctor-login',
+    loadComponent: () =>
+      import('./features/auth/doctor-login/doctor-login')
+        .then((m) => m.DoctorLogin),
+  },
+  {
     path: 'patient-register',
     loadComponent: () =>
       import('./features/auth/patient-register/patient-register')
@@ -26,24 +34,46 @@ export const routes: Routes = [
   },
   {
     path: 'patient-dashboard',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Patient' },
     loadComponent: () =>
-      import('./features/home/home').then((m) => m.Home),
+      import('./features/home/home')
+        .then((m) => m.Home),
   },
   {
     path: 'book-appointment/:doctorId',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Patient' },
     loadComponent: () =>
-      import('./features/booking/booking').then((m) => m.Booking),
+      import('./features/appointments/book-appointment')
+        .then((m) => m.BookAppointment),
   },
   {
-  path: 'admin-dashboard',
-  loadComponent: () =>
-    import('./features/admin-dashboard/admin-dashboard')
-      .then((m) => m.AdminDashboard),
-},
-{
-  path: 'admin-add-doctor',
-  loadComponent: () =>
-    import('./features/admin-add-doctor/admin-add-doctor')
-      .then((m) => m.AdminAddDoctor),
-},
+    path: 'doctor-dashboard',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Doctor' },
+    loadComponent: () =>
+      import('./features/doctor/doctor-dashboard')
+        .then((m) => m.DoctorDashboard),
+  },
+  {
+    path: 'admin-dashboard',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Admin' },
+    loadComponent: () =>
+      import('./features/admin/admin-dashboard')
+        .then((m) => m.AdminDashboard),
+  },
+  {
+    path: 'admin-add-doctor',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Admin' },
+    loadComponent: () =>
+      import('./features/admin-add-doctor/admin-add-doctor')
+        .then((m) => m.AdminAddDoctor),
+  },
+  {
+    path: '**',
+    redirectTo: 'patient-login',
+  },
 ];

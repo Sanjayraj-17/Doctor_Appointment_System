@@ -1,0 +1,164 @@
+<main class="booking-page">
+  <header class="booking-header">
+    <a class="brand" routerLink="/patient-dashboard">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </a>
+    <a class="back-link" routerLink="/patient-dashboard">Back to dashboard</a>
+  </header>
+
+  @if (successAppointment; as appointment) {
+    <section class="success-card" aria-live="polite">
+      <div class="success-mark" aria-hidden="true">&#10003;</div>
+      <p class="eyebrow">BOOKING CONFIRMED</p>
+      <h1>Your appointment is booked</h1>
+      <p class="muted">Reference #{{ appointment.appointmentId }} has been saved.</p>
+      <div class="booking-summary">
+        <strong>{{ doctor?.fullName }}</strong>
+        <span>{{ formatDate(appointment.appointmentDate) }}</span>
+        <span>{{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}</span>
+        <span>Status: {{ appointment.status }}</span>
+      </div>
+      @if (appointmentListRefreshing) {
+        <p class="notice" role="status">Refreshing your appointment list…</p>
+      }
+      @if (appointmentListRefreshed) {
+        <p class="notice success" role="status">Your appointment list has been refreshed.</p>
+      }
+      @if (appointmentListRefreshError) {
+        <p class="notice error" role="alert">{{ appointmentListRefreshError }}</p>
+      }
+      <a class="button button-primary" routerLink="/patient-dashboard">Return to dashboard</a>
+    </section>
+  } @else {
+    <div class="booking-content">
+      <section class="intro">
+        <p class="eyebrow">PATIENT PORTAL</p>
+        <h1>Book an appointment</h1>
+        <p class="muted">
+          Review the doctor’s schedule returned by the clinic, pick a future date, and choose an open slot.
+        </p>
+      </section>
+
+      @if (doctorLoading) {
+        <p class="notice" role="status">Loading doctor details…</p>
+      } @else if (doctorError) {
+        <p class="notice error" role="alert">{{ doctorError }}</p>
+      } @else if (doctor) {
+        <article class="doctor-card">
+          <div class="doctor-avatar" aria-hidden="true">{{ doctor.fullName.charAt(0).toUpperCase() }}</div>
+          <div>
+            <p class="eyebrow">SELECTED DOCTOR</p>
+            <h2>{{ doctor.fullName }}</h2>
+            <p class="speciality">{{ doctor.specialityName }}</p>
+            <p>{{ doctor.qualification }} · {{ doctor.experienceYears }} years’ experience</p>
+            @if (doctor.bio) {
+              <p class="bio">{{ doctor.bio }}</p>
+            }
+            <strong class="fee">{{ doctor.consultationFee | currency:'INR':'symbol':'1.0-0' }}</strong>
+          </div>
+        </article>
+
+        <section class="availability-schedule" aria-label="Doctor availability windows">
+          <h3>Upcoming availability windows</h3>
+          @if (availabilitiesLoading) {
+            <p class="notice" role="status">Loading doctor availability…</p>
+          } @else if (availabilitiesError) {
+            <p class="notice error" role="alert">{{ availabilitiesError }}</p>
+          } @else if (upcomingAvailabilities.length === 0) {
+            <p class="muted">
+              No upcoming availability windows are currently published for this doctor. You may still check a date below.
+            </p>
+          } @else {
+            <p class="muted">Click an available date window to load its open appointment slots:</p>
+            <div class="availability-chips">
+              @for (item of upcomingAvailabilities; track item.availabilityId) {
+                <button
+                  type="button"
+                  class="slot-button"
+                  [class.selected]="bookingForm.controls.appointmentDate.value === item.availableDate"
+                  [disabled]="submitting"
+                  (click)="selectAvailableDate(item.availableDate)"
+                >
+                  {{ formatDate(item.availableDate) }} · {{ formatTime(item.startTime) }}–{{ formatTime(item.endTime) }}
+                </button>
+              }
+            </div>
+          }
+        </section>
+
+        <form class="booking-form" [formGroup]="bookingForm" (ngSubmit)="confirmBooking()">
+          <label>
+            Appointment date
+            <input
+              type="date"
+              formControlName="appointmentDate"
+              [min]="minDate"
+              (change)="onDateChanged()"
+            />
+            @if (bookingForm.controls.appointmentDate.touched && bookingForm.controls.appointmentDate.invalid) {
+              <small>Select an appointment date.</small>
+            }
+          </label>
+
+          <fieldset>
+            <legend>Available times</legend>
+            @if (slotsLoading) {
+              <p class="notice" role="status">Checking available times…</p>
+            } @else if (slotsError) {
+              <p class="notice error" role="alert">{{ slotsError }}</p>
+            } @else if (!bookingForm.controls.appointmentDate.value) {
+              <p class="muted">Choose a date above to load available times.</p>
+            } @else if (slots.length === 0) {
+              <p class="muted">No available times for this date. Try another date.</p>
+            } @else {
+              <div class="slot-grid">
+                @for (slot of slots; track slot.startTime) {
+                  <button
+                    class="slot-button"
+                    [class.selected]="selectedSlot === slot"
+                    type="button"
+                    [disabled]="submitting"
+                    (click)="selectSlot(slot)"
+                  >
+                    {{ formatTime(slot.startTime) }}–{{ formatTime(slot.endTime) }}
+                  </button>
+                }
+              </div>
+            }
+          </fieldset>
+
+          <label>
+            Reason for appointment <span class="optional">(optional)</span>
+            <textarea rows="3" maxlength="500" formControlName="reason"></textarea>
+            @if (bookingForm.controls.reason.touched && bookingForm.controls.reason.invalid) {
+              <small>Use no more than 500 characters.</small>
+            }
+          </label>
+
+          @if (selectedSlot) {
+            <section class="review-card" aria-label="Booking summary">
+              <h2>Review your appointment</h2>
+              <p><strong>Doctor:</strong> {{ doctor.fullName }}</p>
+              <p><strong>Date:</strong> {{ formatDate(selectedSlot.availableDate) }}</p>
+              <p><strong>Time:</strong> {{ formatTime(selectedSlot.startTime) }}–{{ formatTime(selectedSlot.endTime) }}</p>
+              <p><strong>Reason:</strong> {{ bookingForm.controls.reason.value || 'Not specified' }}</p>
+              <p><strong>Consultation fee:</strong> {{ doctor.consultationFee | currency:'INR':'symbol':'1.0-0' }}</p>
+            </section>
+          }
+
+          @if (bookingError) {
+            <p class="notice error" role="alert">{{ bookingError }}</p>
+          }
+          <button
+            class="button button-primary"
+            type="submit"
+            [disabled]="submitting || !selectedSlot || !doctor.isActive"
+          >
+            {{ submitting ? 'Confirming booking…' : 'Confirm appointment' }}
+          </button>
+        </form>
+      }
+    </div>
+  }
+</main>

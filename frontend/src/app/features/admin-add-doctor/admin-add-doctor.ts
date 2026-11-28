@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
+import { AdminService } from '../../core/api/admin.service';
+import { getApiErrorMessage } from '../../core/api/api-error';
+import { AuthService } from '../../core/auth/auth.service';
+import { CreateDoctorAccountRequest } from '../../core/models/admin.models';
 
 @Component({
   selector: 'app-admin-add-doctor',
@@ -11,8 +14,10 @@ import { RouterLink } from '@angular/router';
   styleUrl: './admin-add-doctor.css'
 })
 export class AdminAddDoctor {
-private apiUrl = 'http://localhost:5122/api/Admin/doctors';
-  doctor = {
+  private readonly adminService = inject(AdminService);
+  private readonly authService = inject(AuthService);
+
+  doctor: CreateDoctorAccountRequest = {
     fullName: '',
     email: '',
     password: '',
@@ -25,28 +30,28 @@ private apiUrl = 'http://localhost:5122/api/Admin/doctors';
   };
 
   message = '';
+  isError = false;
   isSaving = false;
-
-  constructor(private http: HttpClient) {}
 
   saveDoctor(): void {
     this.message = '';
-    this.isSaving = true;
+    this.isError = false;
 
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      this.message = 'Admin token not found. Please log in through the backend-connected Admin login.';
-      this.isSaving = false;
+    if (!this.authService.getToken()) {
+      this.isError = true;
+      this.message = 'Admin session not found. Please log in through Admin login.';
       return;
     }
 
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`
-    });
+    this.isSaving = true;
+    const payload: CreateDoctorAccountRequest = {
+      ...this.doctor,
+      bio: this.doctor.bio?.trim() || null
+    };
 
-    this.http.post(this.apiUrl, this.doctor, { headers }).subscribe({
+    this.adminService.createDoctor(payload).subscribe({
       next: () => {
+        this.isError = false;
         this.message = 'Doctor added successfully.';
         this.isSaving = false;
 
@@ -62,9 +67,12 @@ private apiUrl = 'http://localhost:5122/api/Admin/doctors';
           bio: ''
         };
       },
-      error: (error) => {
-        this.message =
-          error.error?.message || 'Could not add doctor. Check the API URL, token, and backend.';
+      error: (error: unknown) => {
+        this.isError = true;
+        this.message = getApiErrorMessage(
+          error,
+          'Could not add doctor. Check the entered details and backend connection.'
+        );
         this.isSaving = false;
       }
     });

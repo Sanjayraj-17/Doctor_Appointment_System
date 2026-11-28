@@ -98,8 +98,14 @@
       [(ngModel)]="doctor.bio"
     ></textarea>
 
+    @if (message) {
+      <p [class]="isError ? 'error-message' : 'success-message'" role="status">{{ message }}</p>
+    }
+
     <div class="form-actions">
-      <button type="submit">Save Doctor</button>
+      <button type="submit" [disabled]="isSaving">
+        {{ isSaving ? 'Saving...' : 'Save Doctor' }}
+      </button>
       <a routerLink="/admin-dashboard" class="cancel-button">Cancel</a>
     </div>
   </form>

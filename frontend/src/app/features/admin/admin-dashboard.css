@@ -1,0 +1,186 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.editor-form,
+.detail-card,
+.speciality-card {
+  background: #fff;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+}
+
+.search-control,
+.directory-controls {
+  margin-bottom: 0.85rem;
+  display: flex;
+  gap: 0.7rem;
+}
+
+.search-control input,
+.directory-controls input,
+.directory-controls select,
+.form-grid input,
+.form-grid select,
+.form-grid textarea,
+.speciality-form input,
+.filter-form input,
+.filter-form select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--cp-input-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--cp-text);
+  font: inherit;
+}
+
+.directory-controls input {
+  flex: 1;
+}
+
+.directory-controls select {
+  max-width: 180px;
+}
+
+.editor-form {
+  margin: 0 0 1rem;
+  padding: 1rem;
+}
+
+.editor-form h3 {
+  margin: 0 0 0.85rem;
+}
+
+.form-grid,
+.filter-form,
+.speciality-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.form-grid label,
+.filter-form label,
+.speciality-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: #456359;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.form-grid .wide,
+.filter-form .form-actions,
+.speciality-form .form-actions {
+  grid-column: 1 / -1;
+}
+
+.form-grid textarea {
+  resize: vertical;
+}
+
+.form-grid .check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.check-label input {
+  width: 18px;
+  min-height: 18px;
+}
+
+.form-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.validation {
+  color: var(--cp-danger-text);
+  font-size: 0.85rem;
+}
+
+.speciality-form {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+}
+
+.speciality-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.speciality-card {
+  padding: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.speciality-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.speciality-card p {
+  margin: 0;
+  color: var(--cp-muted);
+  font-size: 0.86rem;
+}
+
+.detail-card {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.detail-card > p {
+  margin: 0.55rem 0;
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 0.6rem;
+}
+
+.detail-card > p span {
+  color: var(--cp-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 600px) {
+  .form-grid,
+  .filter-form,
+  .speciality-form {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .wide,
+  .filter-form .form-actions,
+  .speciality-form .form-actions {
+    grid-column: auto;
+  }
+
+  .directory-controls {
+    flex-direction: column;
+  }
+
+  .directory-controls select {
+    max-width: none;
+  }
+
+  .detail-card > p {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .speciality-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

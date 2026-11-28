@@ -1,0 +1,576 @@
+<div class="role-dashboard">
+  <header class="topbar">
+    <button
+      class="brand"
+      type="button"
+      (click)="scrollToSection('overview')"
+      aria-label="CarePoint Admin Portal"
+    >
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </button>
+    <div class="account">
+      <span class="role-badge">Admin</span>
+      <span class="account-name">{{ adminName }}</span>
+      <button class="button button-outline" type="button" (click)="logout()">Log out</button>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" aria-label="Admin navigation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'overview'"
+        (click)="scrollToSection('overview')"
+      >
+        Dashboard
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'patients'"
+        (click)="scrollToSection('patients')"
+      >
+        Patients
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'doctors'"
+        (click)="scrollToSection('doctors')"
+      >
+        Doctors
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'specialities'"
+        (click)="scrollToSection('specialities')"
+      >
+        Specialities
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'appointments'"
+        (click)="scrollToSection('appointments')"
+      >
+        Appointments
+      </button>
+    </nav>
+
+    <main class="content">
+      <section id="overview" class="welcome-panel">
+        <div>
+          <p class="eyebrow">ADMINISTRATION</p>
+          <h1>System overview</h1>
+          <p>Manage care teams, patients, specialities, and clinic appointment oversight.</p>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="System statistics">
+        @if (statisticsLoading) {
+          <p class="notice" role="status">Loading dashboard statistics…</p>
+        } @else if (statisticsError) {
+          <p class="notice error" role="alert">{{ statisticsError }}</p>
+        } @else if (statistics) {
+          <article class="summary-card"><span>Patients</span><strong>{{ statistics.patientCount }}</strong></article>
+          <article class="summary-card"><span>Doctors</span><strong>{{ statistics.doctorCount }}</strong></article>
+          <article class="summary-card"><span>Active doctors</span><strong>{{ statistics.activeDoctorCount }}</strong></article>
+          <article class="summary-card"><span>Appointments</span><strong>{{ statistics.appointmentCount }}</strong></article>
+          <article class="summary-card"><span>Pending</span><strong>{{ statistics.pendingAppointmentCount }}</strong></article>
+          <article class="summary-card"><span>Confirmed</span><strong>{{ statistics.confirmedAppointmentCount }}</strong></article>
+          <article class="summary-card"><span>Completed</span><strong>{{ statistics.completedAppointmentCount }}</strong></article>
+          <article class="summary-card"><span>Cancelled</span><strong>{{ statistics.cancelledAppointmentCount }}</strong></article>
+        }
+      </section>
+
+      <section id="patients" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PATIENT DIRECTORY</p>
+            <h2>Patients</h2>
+          </div>
+        </div>
+        <label class="search-control">
+          <span class="visually-hidden">Search patients</span>
+          <input type="search" [(ngModel)]="patientSearch" placeholder="Search name, email, phone, or patient ID" />
+        </label>
+        @if (patientsLoading) {
+          <p class="notice" role="status">Loading patients…</p>
+        } @else if (patientsError) {
+          <p class="notice error" role="alert">{{ patientsError }}</p>
+        } @else if (visiblePatients.length === 0) {
+          <div class="empty-state">
+            <h3>No patients found</h3>
+            <p>Patient records returned by the API will appear here.</p>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (patient of visiblePatients; track patient.patientId) {
+                  <tr>
+                    <td>{{ patient.fullName }}</td>
+                    <td>{{ patient.email }}</td>
+                    <td>{{ patient.phoneNumber }}</td>
+                    <td>
+                      <button class="text-button" type="button" (click)="selectPatient(patient.patientId)">
+                        {{ selectedPatientId === patient.patientId ? 'Close details' : 'View details' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @if (selectedPatient; as patient) {
+          <article class="detail-card">
+            <h3>{{ patient.fullName }}</h3>
+            <p><span>Patient ID</span><strong>{{ patient.patientId }}</strong></p>
+            <p><span>Date of birth</span><strong>{{ formatDate(patient.dateOfBirth) }}</strong></p>
+            <p><span>Gender</span><strong>{{ patient.gender }}</strong></p>
+            <p><span>Phone</span><strong>{{ patient.phoneNumber }}</strong></p>
+            <p><span>Address</span><strong>{{ patient.address }}</strong></p>
+          </article>
+        }
+      </section>
+
+      <section id="doctors" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CARE TEAM</p>
+            <h2>Doctors</h2>
+          </div>
+          @if (doctorFormMode !== 'create') {
+            <button class="button button-primary" type="button" (click)="startDoctorCreation()">
+              Add doctor account
+            </button>
+          }
+        </div>
+        @if (doctorMessage) {
+          <p class="notice success" role="status">{{ doctorMessage }}</p>
+        }
+        @if (doctorActionError) {
+          <p class="notice error" role="alert">{{ doctorActionError }}</p>
+        }
+        @if (doctorFormMode === 'create') {
+          <form class="editor-form" [formGroup]="doctorCreateForm" (ngSubmit)="createDoctor()">
+            <h3>Create Doctor account</h3>
+            <div class="form-grid">
+              <label>
+                Full name
+                <input type="text" formControlName="fullName" maxlength="100" />
+                @if (doctorCreateForm.controls.fullName.touched && doctorCreateForm.controls.fullName.invalid) {
+                  <small class="field-error">Full name is required (max 100 chars).</small>
+                }
+              </label>
+              <label>
+                Email
+                <input type="email" formControlName="email" />
+                @if (doctorCreateForm.controls.email.touched && doctorCreateForm.controls.email.invalid) {
+                  <small class="field-error">Valid email is required.</small>
+                }
+              </label>
+              <label>
+                Password
+                <input type="password" formControlName="password" minlength="8" autocomplete="new-password" />
+                <small class="field-hint">Min 8 chars with uppercase, lowercase, number &amp; symbol.</small>
+                @if (doctorCreateForm.controls.password.touched && doctorCreateForm.controls.password.invalid) {
+                  <small class="field-error">Password must be at least 8 characters.</small>
+                }
+              </label>
+              <label>
+                Phone
+                <input type="tel" formControlName="phoneNumber" maxlength="15" />
+                @if (doctorCreateForm.controls.phoneNumber.touched && doctorCreateForm.controls.phoneNumber.invalid) {
+                  <small class="field-error">Phone number is required (max 15 chars).</small>
+                }
+              </label>
+              <label>
+                Speciality
+                <select formControlName="specialityId">
+                  <option [ngValue]="0">Select speciality</option>
+                  @for (speciality of specialities; track speciality.specialityId) {
+                    <option [ngValue]="speciality.specialityId">{{ speciality.name }}</option>
+                  }
+                </select>
+                @if (doctorCreateForm.controls.specialityId.touched && doctorCreateForm.controls.specialityId.invalid) {
+                  <small class="field-error">Select a speciality.</small>
+                }
+              </label>
+              <label>
+                Qualification
+                <input type="text" formControlName="qualification" maxlength="150" />
+                @if (doctorCreateForm.controls.qualification.touched && doctorCreateForm.controls.qualification.invalid) {
+                  <small class="field-error">Qualification is required.</small>
+                }
+              </label>
+              <label>
+                Experience (years)
+                <input type="number" formControlName="experienceYears" min="0" max="60" />
+              </label>
+              <label>
+                Consultation fee
+                <input type="number" formControlName="consultationFee" min="0" max="99999999" step="0.01" />
+              </label>
+              <label class="wide">
+                Bio
+                <textarea rows="3" formControlName="bio" maxlength="1000"></textarea>
+              </label>
+            </div>
+            @if (doctorCreateForm.invalid && doctorCreateForm.touched) {
+              <p class="validation">Review required fields and their limits.</p>
+            }
+            <div class="form-actions">
+              <button class="button button-primary" type="submit" [disabled]="savingDoctor">
+                {{ savingDoctor ? 'Creating…' : 'Create account' }}
+              </button>
+              <button class="button button-secondary" type="button" [disabled]="savingDoctor" (click)="cancelDoctorForm()">
+                Cancel
+              </button>
+            </div>
+          </form>
+        } @else if (doctorFormMode === 'edit') {
+          <form class="editor-form" [formGroup]="doctorUpdateForm" (ngSubmit)="saveDoctorChanges()">
+            <h3>Edit Doctor: {{ editingDoctorName }} (#{{ editingDoctorId }})</h3>
+            <div class="form-grid">
+              <label>
+                Speciality
+                <select formControlName="specialityId">
+                  <option [ngValue]="0">Select speciality</option>
+                  @for (speciality of specialities; track speciality.specialityId) {
+                    <option [ngValue]="speciality.specialityId">{{ speciality.name }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                Qualification
+                <input type="text" formControlName="qualification" maxlength="150" />
+              </label>
+              <label>
+                Experience (years)
+                <input type="number" formControlName="experienceYears" min="0" max="60" />
+              </label>
+              <label>
+                Consultation fee
+                <input type="number" formControlName="consultationFee" min="0" max="99999999" step="0.01" />
+              </label>
+              <label class="wide">
+                Bio
+                <textarea rows="3" formControlName="bio" maxlength="1000"></textarea>
+              </label>
+              <label class="check-label wide">
+                <input type="checkbox" formControlName="isActive" />
+                Active (visible to patients for appointment booking)
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="button button-primary" type="submit" [disabled]="savingDoctor">
+                {{ savingDoctor ? 'Saving…' : 'Save changes' }}
+              </button>
+              <button class="button button-secondary" type="button" [disabled]="savingDoctor" (click)="cancelDoctorForm()">
+                Cancel
+              </button>
+            </div>
+          </form>
+        }
+        <div class="directory-controls">
+          <input type="search" [(ngModel)]="doctorSearch" placeholder="Search doctors" aria-label="Search doctors" />
+          <select [(ngModel)]="doctorActiveFilter" aria-label="Filter Doctor status">
+            <option value="All">All statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        @if (doctorsLoading) {
+          <p class="notice" role="status">Loading doctors…</p>
+        } @else if (doctorsError) {
+          <p class="notice error" role="alert">{{ doctorsError }}</p>
+        } @else if (visibleDoctors.length === 0) {
+          <div class="empty-state">
+            <h3>No doctors found</h3>
+            <p>Try changing the search or status filter.</p>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Doctor</th>
+                  <th>Speciality</th>
+                  <th>Qualification</th>
+                  <th>Experience</th>
+                  <th>Fee</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (doctor of visibleDoctors; track doctor.doctorId) {
+                  <tr>
+                    <td>{{ doctor.fullName }}</td>
+                    <td>{{ doctor.specialityName }}</td>
+                    <td>{{ doctor.qualification }}</td>
+                    <td>{{ doctor.experienceYears }} yrs</td>
+                    <td>{{ doctor.consultationFee | currency:'INR':'symbol':'1.0-0' }}</td>
+                    <td>
+                      <span class="status" [class.confirmed]="doctor.isActive" [class.cancelled]="!doctor.isActive">
+                        {{ doctor.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </td>
+                    <td class="table-actions">
+                      <button class="text-button" type="button" (click)="startDoctorEdit(doctor)">Edit</button>
+                      @if (doctor.isActive && confirmingDoctorDeactivationId === doctor.doctorId) {
+                        <button
+                          class="text-button cancel-link"
+                          type="button"
+                          [disabled]="doctorActionId !== null"
+                          (click)="toggleDoctorActive(doctor)"
+                        >
+                          Confirm deactivate
+                        </button>
+                        <button class="text-button" type="button" (click)="cancelDoctorDeactivation()">Keep</button>
+                      } @else if (doctor.isActive) {
+                        <button class="text-button cancel-link" type="button" (click)="requestDoctorDeactivation(doctor.doctorId)">
+                          Deactivate
+                        </button>
+                      } @else {
+                        <button
+                          class="text-button"
+                          type="button"
+                          [disabled]="doctorActionId !== null"
+                          (click)="toggleDoctorActive(doctor)"
+                        >
+                          {{ doctorActionId === doctor.doctorId ? 'Activating…' : 'Activate' }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <section id="specialities" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CLINIC CATALOG</p>
+            <h2>Specialities</h2>
+          </div>
+        </div>
+        @if (specialityMessage) {
+          <p class="notice success" role="status">{{ specialityMessage }}</p>
+        }
+        @if (specialityActionError) {
+          <p class="notice error" role="alert">{{ specialityActionError }}</p>
+        }
+        <form class="speciality-form" [formGroup]="specialityForm" (ngSubmit)="saveSpeciality()">
+          <label>
+            Name
+            <input type="text" formControlName="name" maxlength="100" />
+          </label>
+          <label>
+            Description
+            <input type="text" formControlName="description" maxlength="500" />
+          </label>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit" [disabled]="savingSpeciality">
+              {{ savingSpeciality ? 'Saving…' : (editingSpecialityId === null ? 'Add speciality' : 'Save speciality') }}
+            </button>
+            @if (editingSpecialityId !== null) {
+              <button class="button button-secondary" type="button" (click)="cancelSpecialityEdit()">Cancel edit</button>
+            }
+          </div>
+        </form>
+        @if (specialityForm.invalid && specialityForm.touched) {
+          <p class="validation">Enter a name of no more than 100 characters and a description of no more than 500 characters.</p>
+        }
+        @if (specialitiesLoading) {
+          <p class="notice" role="status">Loading specialities…</p>
+        } @else if (specialitiesError) {
+          <p class="notice error" role="alert">{{ specialitiesError }}</p>
+        } @else if (specialities.length === 0) {
+          <div class="empty-state">
+            <h3>No specialities</h3>
+            <p>Add a speciality to the clinic catalog.</p>
+          </div>
+        } @else {
+          <div class="speciality-list">
+            @for (speciality of specialities; track speciality.specialityId) {
+              <article class="speciality-card">
+                <div>
+                  <h3>{{ speciality.name }}</h3>
+                  <p>{{ speciality.description || 'No description' }}</p>
+                </div>
+                <div class="table-actions">
+                  <button class="text-button" type="button" (click)="startSpecialityEdit(speciality)">Edit</button>
+                  @if (confirmingSpecialityDeleteId === speciality.specialityId) {
+                    <button
+                      class="text-button cancel-link"
+                      type="button"
+                      [disabled]="savingSpeciality"
+                      (click)="deleteSpeciality(speciality.specialityId)"
+                    >
+                      Confirm delete
+                    </button>
+                    <button class="text-button" type="button" (click)="cancelSpecialityDelete()">Keep</button>
+                  } @else {
+                    <button class="text-button cancel-link" type="button" (click)="requestSpecialityDelete(speciality.specialityId)">
+                      Delete
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section id="appointments" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">SCHEDULE OVERSIGHT</p>
+            <h2>Appointments</h2>
+          </div>
+        </div>
+        <form class="filter-form" [formGroup]="appointmentFilterForm" (ngSubmit)="applyAppointmentFilters()">
+          <label>
+            Date
+            <input type="date" formControlName="date" />
+          </label>
+          <label>
+            Doctor
+            <select formControlName="doctorId">
+              <option [ngValue]="0">All doctors</option>
+              @for (doctor of doctors; track doctor.doctorId) {
+                <option [ngValue]="doctor.doctorId">
+                  {{ doctor.fullName }} — {{ doctor.specialityName }} (#{{ doctor.doctorId }})
+                </option>
+              }
+            </select>
+          </label>
+          <label>
+            Patient
+            <select formControlName="patientId">
+              <option [ngValue]="0">All patients</option>
+              @for (patient of patients; track patient.patientId) {
+                <option [ngValue]="patient.patientId">
+                  {{ patient.fullName }} (#{{ patient.patientId }})
+                </option>
+              }
+            </select>
+          </label>
+          <label>
+            Status
+            <select formControlName="status">
+              <option value="">All statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button class="button button-primary" type="submit" [disabled]="appointmentsLoading">
+              {{ appointmentsLoading ? 'Filtering…' : 'Apply filters' }}
+            </button>
+            <button class="button button-secondary" type="button" [disabled]="appointmentsLoading" (click)="clearAppointmentFilters()">
+              Clear
+            </button>
+          </div>
+        </form>
+        <p class="muted">Admin appointment oversight is read-only. Status transitions are performed by Patients and Doctors.</p>
+        @if (appointmentsLoading) {
+          <p class="notice" role="status">Loading appointments…</p>
+        } @else if (appointmentsError) {
+          <p class="notice error" role="alert">{{ appointmentsError }}</p>
+        } @else if (appointments.length === 0) {
+          <div class="empty-state">
+            <h3>No appointments found</h3>
+            <p>There are no appointments matching these filters.</p>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date / time</th>
+                  <th>Patient</th>
+                  <th>Doctor</th>
+                  <th>Speciality</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (appointment of appointments; track appointment.appointmentId) {
+                  <tr>
+                    <td>
+                      {{ formatDate(appointment.appointmentDate) }}
+                      <small>{{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}</small>
+                    </td>
+                    <td>{{ appointment.patientName }}</td>
+                    <td>{{ appointment.doctorName }}</td>
+                    <td>{{ appointment.specialityName }}</td>
+                    <td>
+                      <span
+                        class="status"
+                        [class.pending]="appointment.status === 'Pending'"
+                        [class.confirmed]="appointment.status === 'Confirmed'"
+                        [class.completed]="appointment.status === 'Completed'"
+                        [class.cancelled]="appointment.status === 'Cancelled'"
+                      >
+                        {{ appointment.status }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="text-button" type="button" (click)="viewAppointment(appointment.appointmentId)">
+                        {{ selectedAppointment?.appointmentId === appointment.appointmentId ? 'Close' : 'View' }}
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @if (appointmentDetailLoading) {
+          <p class="notice" role="status">Loading appointment details…</p>
+        }
+        @if (appointmentDetailError) {
+          <p class="notice error" role="alert">{{ appointmentDetailError }}</p>
+        }
+        @if (selectedAppointment; as appointment) {
+          <article class="detail-card">
+            <div class="section-heading">
+              <h3>Appointment #{{ appointment.appointmentId }}</h3>
+              <button class="text-button" type="button" (click)="selectedAppointment = null">Close</button>
+            </div>
+            <p><span>Patient</span><strong>{{ appointment.patientName }} (#{{ appointment.patientId }})</strong></p>
+            <p><span>Doctor</span><strong>{{ appointment.doctorName }} · {{ appointment.doctorQualification }}</strong></p>
+            <p><span>Speciality</span><strong>{{ appointment.specialityName }}</strong></p>
+            <p><span>Date and time</span><strong>{{ formatDate(appointment.appointmentDate) }}, {{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}</strong></p>
+            <p><span>Reason</span><strong>{{ appointment.reason || 'Not specified' }}</strong></p>
+            <p><span>Status</span><strong>{{ appointment.status }}</strong></p>
+            <p><span>Created at</span><strong>{{ appointment.createdAt | date:'medium' }}</strong></p>
+          </article>
+        }
+      </section>
+
+      <footer class="footer">CarePoint · Your health, in good hands.</footer>
+    </main>
+  </div>
+</div>
