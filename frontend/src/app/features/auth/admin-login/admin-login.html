@@ -1,0 +1,36 @@
+<div class="admin-login-page">
+  <section class="admin-login-form">
+    <h1>Admin Login</h1>
+    <p class="subtitle">Sign in to manage the appointment system</p>
+
+    <form (ngSubmit)="login()">
+      <div class="form-field">
+        <label for="email">Admin email <span>*</span></label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="Enter your admin email"
+          required
+        />
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password <span>*</span></label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Enter your password"
+          required
+        />
+      </div>
+
+      <button type="submit">Login</button>
+
+      <p class="patient-link">
+        <a href="/patient-login">Back to patient login</a>
+      </p>
+    </form>
+  </section>
+</div>
