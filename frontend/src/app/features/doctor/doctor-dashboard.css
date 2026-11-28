@@ -1,0 +1,224 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.appointment-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.appointment-list,
+.availability-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.appointment-card,
+.availability-card,
+.detail-card {
+  background: #fff;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+}
+
+.appointment-card {
+  padding: 0.9rem;
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.appointment-date {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--cp-primary);
+}
+
+.appointment-date span,
+.appointment-details p {
+  margin: 0;
+  color: var(--cp-muted);
+  font-size: 0.86rem;
+}
+
+.appointment-details h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.appointment-details .status {
+  margin-top: 0.4rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.confirmation {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.detail-card {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.detail-card > p {
+  margin: 0.5rem 0;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 0.6rem;
+}
+
+.detail-card > p span,
+.profile-grid span {
+  color: var(--cp-muted);
+  font-size: 0.84rem;
+}
+
+.availability-form,
+.profile-grid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  border: 1px solid var(--cp-border);
+  border-radius: 10px;
+}
+
+.availability-form {
+  margin-bottom: 1rem;
+}
+
+.availability-form label {
+  display: grid;
+  gap: 0.4rem;
+  color: #456359;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.availability-form small {
+  color: var(--cp-danger);
+  font-weight: 400;
+}
+
+.availability-form input,
+.filter-label select {
+  min-height: 40px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--cp-input-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--cp-text);
+  font: inherit;
+}
+
+.availability-form input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+}
+
+.availability-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.6rem;
+}
+
+.availability-card {
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.availability-info {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.filter-label select {
+  min-width: 150px;
+}
+
+.profile-grid {
+  border: 0;
+  padding: 0;
+}
+
+.profile-grid p {
+  margin: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.profile-grid strong {
+  font-size: 0.94rem;
+}
+
+.profile-grid .bio {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 850px) {
+  .appointment-card {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .appointment-card > .actions,
+  .appointment-card > .confirmation {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .appointment-card {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-date {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .appointment-card > .actions,
+  .appointment-card > .confirmation {
+    grid-column: auto;
+  }
+
+  .availability-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .availability-form,
+  .profile-grid,
+  .detail-card > p {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions,
+  .profile-grid .bio {
+    grid-column: auto;
+  }
+}

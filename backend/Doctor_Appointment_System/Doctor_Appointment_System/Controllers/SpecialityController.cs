@@ -1,6 +1,7 @@
 ﻿
 using Doctor_Appointment_System.Data;
 using Doctor_Appointment_System.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,6 +48,7 @@ public class SpecialityController : ControllerBase
 
     // POST: api/speciality
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateSpeciality(
         Speciality speciality)
     {
@@ -77,6 +79,7 @@ public class SpecialityController : ControllerBase
 
     // PUT: api/speciality/1
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSpeciality(
         int id,
         Speciality updatedSpeciality)
@@ -124,6 +127,7 @@ public class SpecialityController : ControllerBase
 
     // DELETE: api/speciality/1
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteSpeciality(int id)
     {
         var speciality = await _context.Specialities
@@ -156,14 +160,11 @@ public class SpecialityController : ControllerBase
 
     // GET: api/speciality/database-check
     [HttpGet("database-check")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CheckDatabase()
     {
-        var connection = _context.Database.GetDbConnection();
-
         return Ok(new
         {
-            Database = connection.Database,
-            Server = connection.DataSource,
             SpecialityCount =
                 await _context.Specialities.CountAsync()
         });

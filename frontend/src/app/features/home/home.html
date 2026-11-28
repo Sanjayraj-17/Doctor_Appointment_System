@@ -1,1 +1,441 @@
-<p>home works!</p>
+<div class="patient-dashboard">
+  <header class="topbar">
+    <button
+      class="brand"
+      type="button"
+      (click)="scrollToSection('overview')"
+      aria-label="CarePoint dashboard"
+    >
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </button>
+    <div class="account">
+      <span class="role-badge">Patient</span>
+      <span class="account-name">{{ patientName }}</span>
+      <button class="button button-outline" type="button" (click)="logout()">Log out</button>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" aria-label="Patient navigation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'overview'"
+        (click)="scrollToSection('overview')"
+      >
+        Dashboard
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'appointments'"
+        (click)="scrollToSection('appointments')"
+      >
+        My Appointments
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'doctors'"
+        (click)="scrollToSection('doctors')"
+      >
+        Find Doctors
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'history'"
+        (click)="scrollToSection('history')"
+      >
+        History
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'profile'"
+        (click)="scrollToSection('profile')"
+      >
+        Profile
+      </button>
+    </nav>
+
+    <main class="content">
+      <section id="overview" class="welcome-panel">
+        <div>
+          <p class="eyebrow">PATIENT PORTAL</p>
+          <h1>Welcome back, {{ patientName }}</h1>
+          <p>Manage your care, book appointments, and update your personal details.</p>
+        </div>
+        <button class="button button-light" type="button" (click)="scrollToSection('doctors')">
+          Find a doctor
+        </button>
+      </section>
+
+      <section class="summary-grid" aria-label="Appointment summary">
+        <article class="summary-card">
+          <div class="summary-row">
+            <span class="summary-icon" aria-hidden="true">&#9719;</span>
+            <div>
+              <p>Upcoming appointments</p>
+              <strong>{{ appointmentsLoading ? '—' : upcomingAppointments.length }}</strong>
+            </div>
+          </div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-row">
+            <span class="summary-icon" aria-hidden="true">&#10003;</span>
+            <div>
+              <p>Appointment history</p>
+              <strong>{{ historyLoading ? '—' : history.length }}</strong>
+            </div>
+          </div>
+        </article>
+        <article class="summary-card">
+          <div class="summary-row">
+            <span class="summary-icon" aria-hidden="true">&#9825;</span>
+            <div>
+              <p>Available doctors</p>
+              <strong>{{ doctorsLoading ? '—' : doctors.length }}</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="appointments" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR CARE</p>
+            <h2>My appointments</h2>
+          </div>
+          <div class="tab-bar" role="tablist" aria-label="Appointment view">
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="appointmentViewMode === 'upcoming'"
+              (click)="appointmentViewMode = 'upcoming'"
+            >
+              Upcoming ({{ upcomingAppointments.length }})
+            </button>
+            <button
+              type="button"
+              class="tab-button"
+              [class.active]="appointmentViewMode === 'all'"
+              (click)="appointmentViewMode = 'all'"
+            >
+              All ({{ appointments.length }})
+            </button>
+          </div>
+        </div>
+
+        @if (appointmentsLoading) {
+          <p class="state-message" role="status">Loading your appointments…</p>
+        } @else if (appointmentsError) {
+          <p class="state-message error" role="alert">{{ appointmentsError }}</p>
+        } @else if (displayedAppointments.length === 0) {
+          <div class="empty-state">
+            <h3>{{ appointmentViewMode === 'upcoming' ? 'No upcoming appointments' : 'No appointments yet' }}</h3>
+            <p>When you book a visit, it will appear here.</p>
+            <button class="button button-primary" type="button" (click)="scrollToSection('doctors')">
+              Browse doctors
+            </button>
+          </div>
+        } @else {
+          <div class="appointment-list">
+            @for (appointment of displayedAppointments; track appointment.appointmentId) {
+              <article class="appointment-card">
+                <div class="appointment-date">
+                  <strong>{{ formatDate(appointment.appointmentDate) }}</strong>
+                  <span>{{ formatTime(appointment.startTime) }}</span>
+                </div>
+                <div class="appointment-details">
+                  <h3>{{ appointment.doctorName || 'Doctor' }}</h3>
+                  <p>
+                    {{ appointment.specialityName || appointment.doctorQualification || 'Consultation' }}
+                    · {{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}
+                  </p>
+                  @if (appointment.reason) {
+                    <p class="reason">Reason: {{ appointment.reason }}</p>
+                  }
+                </div>
+                <span
+                  class="status"
+                  [class.pending]="appointment.status === 'Pending'"
+                  [class.confirmed]="appointment.status === 'Confirmed'"
+                  [class.completed]="appointment.status === 'Completed'"
+                  [class.cancelled]="appointment.status === 'Cancelled'"
+                >
+                  {{ appointment.status }}
+                </span>
+                @if (confirmingCancellationId === appointment.appointmentId) {
+                  <div class="cancel-confirm">
+                    <span>Cancel this appointment?</span>
+                    <button
+                      class="button button-danger"
+                      type="button"
+                      [disabled]="cancellingAppointmentId !== null"
+                      (click)="cancelAppointment(appointment)"
+                    >
+                      Confirm cancel
+                    </button>
+                    <button class="text-button" type="button" (click)="keepAppointment()">
+                      Keep
+                    </button>
+                  </div>
+                } @else if (canCancel(appointment.status)) {
+                  <button
+                    class="text-button cancel-link"
+                    type="button"
+                    [disabled]="cancellingAppointmentId !== null"
+                    (click)="requestCancellation(appointment.appointmentId)"
+                  >
+                    {{ cancellingAppointmentId === appointment.appointmentId ? 'Cancelling…' : 'Cancel' }}
+                  </button>
+                }
+              </article>
+            }
+          </div>
+        }
+        @if (appointmentActionError) {
+          <p class="state-message error" role="alert">{{ appointmentActionError }}</p>
+        }
+        @if (cancellationMessage) {
+          <p class="state-message success" role="status">{{ cancellationMessage }}</p>
+        }
+      </section>
+
+      <section id="doctors" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CARE TEAM</p>
+            <h2>Find a doctor</h2>
+          </div>
+        </div>
+        <div class="doctor-filters">
+          <label class="search-field">
+            <span class="visually-hidden">Search doctors</span>
+            <input
+              type="search"
+              [(ngModel)]="doctorSearchText"
+              [ngModelOptions]="{ standalone: true }"
+              placeholder="Search by name, qualification, or speciality"
+            />
+          </label>
+          <label class="speciality-field">
+            <span class="visually-hidden">Filter by speciality</span>
+            <select
+              [ngModel]="selectedSpecialityId"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="onSpecialityChanged($event)"
+            >
+              <option value="">All specialities</option>
+              @for (speciality of specialities; track speciality.specialityId) {
+                <option [value]="speciality.specialityId">{{ speciality.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        @if (specialitiesLoading) {
+          <p class="state-message" role="status">Loading specialities…</p>
+        } @else if (specialitiesError) {
+          <p class="state-message error" role="alert">{{ specialitiesError }}</p>
+        }
+        @if (doctorsLoading) {
+          <p class="state-message" role="status">Loading doctors…</p>
+        } @else if (doctorsError) {
+          <p class="state-message error" role="alert">{{ doctorsError }}</p>
+        } @else if (visibleDoctors.length === 0) {
+          <div class="empty-state compact">
+            <h3>No doctors found</h3>
+            <p>Try a different search or speciality.</p>
+            @if (doctorSearchText || selectedSpecialityId) {
+              <button class="button button-secondary" type="button" (click)="clearDoctorFilters()">
+                Clear filters
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="doctor-grid">
+            @for (doctor of visibleDoctors; track doctor.doctorId) {
+              <article class="doctor-card">
+                <div class="doctor-avatar" aria-hidden="true">
+                  {{ doctor.fullName.charAt(0).toUpperCase() }}
+                </div>
+                <div class="doctor-info">
+                  <h3>{{ doctor.fullName }}</h3>
+                  <p class="doctor-speciality">{{ doctor.specialityName }}</p>
+                  <p>{{ doctor.qualification }} · {{ doctor.experienceYears }} years’ experience</p>
+                  <p class="fee">{{ doctor.consultationFee | currency:'INR':'symbol':'1.0-0' }}</p>
+                  @if (expandedDoctorId === doctor.doctorId) {
+                    <p class="doctor-bio">
+                      {{ doctor.bio || 'Experienced specialist accepting appointments.' }}
+                    </p>
+                  }
+                  <div class="doctor-card-actions">
+                    <a
+                      class="button button-primary"
+                      [routerLink]="['/book-appointment', doctor.doctorId]"
+                    >
+                      Check availability &amp; book
+                    </a>
+                    <button
+                      class="text-button"
+                      type="button"
+                      (click)="toggleDoctorDetails(doctor.doctorId)"
+                    >
+                      {{ expandedDoctorId === doctor.doctorId ? 'Hide details' : 'View details' }}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section id="history" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PAST VISITS</p>
+            <h2>Appointment history</h2>
+          </div>
+        </div>
+        @if (historyLoading) {
+          <p class="state-message" role="status">Loading your history…</p>
+        } @else if (historyError) {
+          <p class="state-message error" role="alert">{{ historyError }}</p>
+        } @else if (history.length === 0) {
+          <div class="empty-state compact">
+            <h3>No appointment history yet</h3>
+            <p>Your completed, cancelled, and past visits will appear here.</p>
+          </div>
+        } @else {
+          <div class="appointment-list">
+            @for (appointment of history; track appointment.appointmentId) {
+              <article class="appointment-card">
+                <div class="appointment-date">
+                  <strong>{{ formatDate(appointment.appointmentDate) }}</strong>
+                  <span>{{ formatTime(appointment.startTime) }}</span>
+                </div>
+                <div class="appointment-details">
+                  <h3>{{ appointment.doctorName || 'Doctor' }}</h3>
+                  <p>
+                    {{ appointment.specialityName || appointment.doctorQualification || 'Consultation' }}
+                    · {{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}
+                  </p>
+                  @if (appointment.reason) {
+                    <p class="reason">Reason: {{ appointment.reason }}</p>
+                  }
+                </div>
+                <span
+                  class="status"
+                  [class.pending]="appointment.status === 'Pending'"
+                  [class.confirmed]="appointment.status === 'Confirmed'"
+                  [class.completed]="appointment.status === 'Completed'"
+                  [class.cancelled]="appointment.status === 'Cancelled'"
+                >
+                  {{ appointment.status }}
+                </span>
+              </article>
+            }
+          </div>
+        }
+      </section>
+
+      <section id="profile" class="section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PERSONAL INFORMATION</p>
+            <h2>My profile</h2>
+          </div>
+        </div>
+        @if (profileLoading) {
+          <p class="state-message" role="status">Loading your profile…</p>
+        } @else if (profileError && !profile) {
+          <p class="state-message error" role="alert">{{ profileError }}</p>
+          <button class="button button-primary" type="button" (click)="retryProfileLoad()">
+            Try again
+          </button>
+        } @else if (profile) {
+          @if (profileMessage) {
+            <p class="state-message success" role="status">{{ profileMessage }}</p>
+          }
+          @if (profileError) {
+            <p class="state-message error" role="alert">{{ profileError }}</p>
+          }
+          <form class="profile-card" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+            <div class="profile-grid">
+              <label>
+                Full name
+                <input type="text" formControlName="fullName" />
+                @if (profileForm.controls.fullName.touched && profileForm.controls.fullName.invalid) {
+                  <small>Enter a name of no more than 100 characters.</small>
+                }
+              </label>
+              <label>
+                Email
+                <input type="email" [value]="profile.email" readonly />
+              </label>
+              <label>
+                Date of birth
+                <input type="date" formControlName="dateOfBirth" [max]="clinicToday" />
+                @if (profileForm.controls.dateOfBirth.touched && profileForm.controls.dateOfBirth.invalid) {
+                  <small>Choose your date of birth.</small>
+                }
+              </label>
+              <label>
+                Gender
+                <select formControlName="gender">
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label>
+                Phone number
+                <input type="tel" formControlName="phoneNumber" />
+                @if (profileForm.controls.phoneNumber.touched && profileForm.controls.phoneNumber.invalid) {
+                  <small>Enter a phone number of no more than 15 characters.</small>
+                }
+              </label>
+              <label class="address-field">
+                Address
+                <textarea rows="3" formControlName="address"></textarea>
+                @if (profileForm.controls.address.touched && profileForm.controls.address.invalid) {
+                  <small>Enter an address of no more than 250 characters.</small>
+                }
+              </label>
+            </div>
+            <div class="form-actions">
+              @if (profileEditing) {
+                <button
+                  class="button button-primary"
+                  type="submit"
+                  [disabled]="profileSaving"
+                >
+                  {{ profileSaving ? 'Saving…' : 'Save changes' }}
+                </button>
+                <button
+                  class="button button-secondary"
+                  type="button"
+                  [disabled]="profileSaving"
+                  (click)="cancelProfileEdit()"
+                >
+                  Cancel
+                </button>
+              } @else {
+                <button class="button button-primary" type="button" (click)="beginProfileEdit()">
+                  Edit profile
+                </button>
+              }
+            </div>
+          </form>
+        }
+      </section>
+
+      <footer class="footer">CarePoint · Your health, in good hands.</footer>
+    </main>
+  </div>
+</div>

@@ -1,3 +1,4 @@
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -6,6 +7,7 @@ using Doctor_Appointment_System.Configuration;
 using Doctor_Appointment_System.Data;
 using Doctor_Appointment_System.Models;
 using Doctor_Appointment_System.Services;
+using Doctor_Appointment_System.Services.Implementations;
 using Doctor_Appointment_System.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +17,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ==========================================
+// CORS Configuration
+// ==========================================
 
 builder.Services.AddCors(options =>
 {
@@ -26,13 +32,19 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add services to the container.
+// ==========================================
+// Database Configuration
+// ==========================================
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+// ==========================================
+// Identity Configuration
+// ==========================================
 
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -42,22 +54,35 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// ==========================================
+// JWT Configuration
+// ==========================================
+
 var jwtOptions = builder.Configuration
     .GetSection(JwtOptions.SectionName)
     .Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT configuration is missing.");
 
-if (string.IsNullOrWhiteSpace(jwtOptions.SecretKey) || Encoding.UTF8.GetByteCount(jwtOptions.SecretKey) < 32)
+if (string.IsNullOrWhiteSpace(jwtOptions.SecretKey) ||
+    Encoding.UTF8.GetByteCount(jwtOptions.SecretKey) < 32)
 {
-    throw new InvalidOperationException("Jwt:SecretKey must be supplied through user secrets or environment configuration and contain at least 32 bytes.");
+    throw new InvalidOperationException(
+        "Jwt:SecretKey must be supplied through user secrets or environment configuration and contain at least 32 bytes.");
 }
 
-if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) || string.IsNullOrWhiteSpace(jwtOptions.Audience) || jwtOptions.ExpiryMinutes <= 0)
+if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) ||
+    string.IsNullOrWhiteSpace(jwtOptions.Audience) ||
+    jwtOptions.ExpiryMinutes <= 0)
 {
-    throw new InvalidOperationException("JWT issuer, audience, and a positive expiry duration are required.");
+    throw new InvalidOperationException(
+        "JWT issuer, audience, and a positive expiry duration are required.");
 }
 
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<JwtOptions>(
+    builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<AppointmentOptions>(
+    builder.Configuration.GetSection(AppointmentOptions.SectionName));
+
 builder.Services
     .AddAuthentication(options =>
     {
@@ -75,37 +100,59 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
             NameClaimType = ClaimTypes.NameIdentifier,
             RoleClaimType = ClaimTypes.Role
         };
     });
 
+// ==========================================
+// Dependency Injection - Services
+// ==========================================
+
+// Existing Authentication Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+
+// Member 2 - Admin and Availability Services
+builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
+// ==========================================
+// Controllers and JSON Configuration
+// ==========================================
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter());
     });
+
 builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(new
     {
-        options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(new
-        {
-            success = false,
-            message = "Validation failed",
-            errors = context.ModelState
-                .Where(entry => entry.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    entry => entry.Key,
-                    entry => entry.Value!.Errors.Select(error => error.ErrorMessage).ToArray())
-        });
+        success = false,
+        message = "Validation failed",
+        errors = context.ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value!.Errors
+                    .Select(error => error.ErrorMessage)
+                    .ToArray())
     });
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//builder.Services.AddOpenApi();
+});
+
+// ==========================================
+// Swagger Configuration
+// ==========================================
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -117,36 +164,45 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Enter a valid JWT token as: Bearer {token}"
     });
-    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
+
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+        });
 });
+
+// ==========================================
+// Build Application
+// ==========================================
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    if (!await roleManager.RoleExistsAsync("Patient"))
-    {
-        var roleResult = await roleManager.CreateAsync(new IdentityRole("Patient"));
-        if (!roleResult.Succeeded)
-        {
-            throw new InvalidOperationException("The Patient role could not be created.");
-        }
-    }
-}
+// ==========================================
+// Seed Identity Roles and Development Admin
+// ==========================================
 
-// Configure the HTTP request pipeline.
+await IdentitySeeder.SeedAsync(
+    app.Services,
+    app.Configuration,
+    app.Environment);
+
+// ==========================================
+// HTTP Request Pipeline
+// ==========================================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHttpsRedirection();
+}
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAngularFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 

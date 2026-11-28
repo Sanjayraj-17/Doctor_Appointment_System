@@ -1,8 +1,12 @@
+export type AuthRole = 'Patient' | 'Doctor' | 'Admin';
+
 export interface AuthUser {
-  patientId: number;
+  patientId?: number;
   fullName: string;
   email: string;
-  role: string;
+  role: AuthRole;
+  userId: string;
+  doctorId?: number;
 }
 
 export interface AuthResponse {
@@ -18,7 +22,11 @@ export interface PatientProfile {
   fullName: string;
   email: string;
   dateOfBirth: string;
-  gender: string;
+  gender: 'Male' | 'Female' | 'Other';
   phoneNumber: string;
   address: string;
+}
+
+export function isAuthRole(value: unknown): value is AuthRole {
+  return value === 'Patient' || value === 'Doctor' || value === 'Admin';
 }

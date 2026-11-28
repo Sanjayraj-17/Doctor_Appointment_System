@@ -8,6 +8,10 @@ namespace Doctor_Appointment_System.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private const string PatientRole = "Patient";
+    private const string DoctorRole = "Doctor";
+    private const string AdminRole = "Admin";
+
     private readonly IAuthService _authService;
 
     public AuthController(IAuthService authService)
@@ -37,7 +41,33 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
+    {
+        return LoginForRoleAsync(request, PatientRole, cancellationToken);
+    }
+
+    [HttpPost("login/patient")]
+    public Task<IActionResult> LoginPatient(LoginRequest request, CancellationToken cancellationToken)
+    {
+        return LoginForRoleAsync(request, PatientRole, cancellationToken);
+    }
+
+    [HttpPost("login/doctor")]
+    public Task<IActionResult> LoginDoctor(LoginRequest request, CancellationToken cancellationToken)
+    {
+        return LoginForRoleAsync(request, DoctorRole, cancellationToken);
+    }
+
+    [HttpPost("login/admin")]
+    public Task<IActionResult> LoginAdmin(LoginRequest request, CancellationToken cancellationToken)
+    {
+        return LoginForRoleAsync(request, AdminRole, cancellationToken);
+    }
+
+    private async Task<IActionResult> LoginForRoleAsync(
+        LoginRequest request,
+        string role,
+        CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
@@ -53,7 +83,7 @@ public class AuthController : ControllerBase
             });
         }
 
-        var result = await _authService.LoginAsync(request, cancellationToken);
+        var result = await _authService.LoginAsync(request, role, cancellationToken);
         return CreateResponse(result);
     }
 

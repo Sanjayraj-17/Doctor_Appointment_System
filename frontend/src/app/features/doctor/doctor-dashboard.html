@@ -1,0 +1,412 @@
+<div class="role-dashboard">
+  <header class="topbar">
+    <button
+      class="brand"
+      type="button"
+      (click)="scrollToSection('overview')"
+      aria-label="CarePoint Doctor Portal"
+    >
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </button>
+    <div class="account">
+      <span class="role-badge">Doctor</span>
+      <span class="account-name">{{ doctor?.fullName || 'Doctor' }}</span>
+      <button class="button button-outline" type="button" (click)="logout()">Log out</button>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <nav class="sidebar" aria-label="Doctor navigation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'overview'"
+        (click)="scrollToSection('overview')"
+      >
+        Dashboard
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'appointments'"
+        (click)="scrollToSection('appointments')"
+      >
+        Appointments
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'availability'"
+        (click)="scrollToSection('availability')"
+      >
+        Availability
+      </button>
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeSection === 'profile'"
+        (click)="scrollToSection('profile')"
+      >
+        Profile
+      </button>
+    </nav>
+
+    <main class="content">
+      @if (doctorLoading) {
+        <p class="notice" role="status">Loading your Doctor profile…</p>
+      } @else if (doctorError) {
+        <p class="notice error" role="alert">{{ doctorError }}</p>
+      } @else if (doctor) {
+        <section id="overview" class="welcome-panel">
+          <div>
+            <p class="eyebrow">DOCTOR PORTAL</p>
+            <h1>Welcome, {{ doctor.fullName }}</h1>
+            <p>Review your upcoming schedule, update appointment statuses, and manage your availability.</p>
+          </div>
+          <button class="button button-light" type="button" (click)="scrollToSection('appointments')">
+            View appointments
+          </button>
+        </section>
+
+        <section class="summary-grid" aria-label="Appointment statistics">
+          <article class="summary-card">
+            <span>Upcoming</span>
+            <strong>{{ appointmentsLoading ? '—' : upcomingCount }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Pending</span>
+            <strong>{{ appointmentsLoading ? '—' : countByStatus('Pending') }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Confirmed</span>
+            <strong>{{ appointmentsLoading ? '—' : countByStatus('Confirmed') }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Completed</span>
+            <strong>{{ appointmentsLoading ? '—' : countByStatus('Completed') }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>History</span>
+            <strong>{{ appointmentsLoading ? '—' : historyAppointments.length }}</strong>
+          </article>
+        </section>
+
+        <section id="appointments" class="section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SCHEDULE</p>
+              <h2>Appointments</h2>
+            </div>
+            <div class="appointment-controls">
+              <div class="tab-bar" role="tablist" aria-label="Appointment schedule tabs">
+                <button
+                  type="button"
+                  class="tab-button"
+                  [class.active]="appointmentTab === 'upcoming'"
+                  (click)="setAppointmentTab('upcoming')"
+                >
+                  Upcoming ({{ upcomingAppointments.length }})
+                </button>
+                <button
+                  type="button"
+                  class="tab-button"
+                  [class.active]="appointmentTab === 'history'"
+                  (click)="setAppointmentTab('history')"
+                >
+                  History ({{ historyAppointments.length }})
+                </button>
+                <button
+                  type="button"
+                  class="tab-button"
+                  [class.active]="appointmentTab === 'all'"
+                  (click)="setAppointmentTab('all')"
+                >
+                  All ({{ appointments.length }})
+                </button>
+              </div>
+              <label class="filter-label">
+                <span class="visually-hidden">Filter appointments by status</span>
+                <select [value]="appointmentFilter" (change)="setAppointmentFilter($any($event.target).value)">
+                  <option value="All">All statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          @if (appointmentMessage) {
+            <p class="notice success" role="status">{{ appointmentMessage }}</p>
+          }
+          @if (appointmentActionError) {
+            <p class="notice error" role="alert">{{ appointmentActionError }}</p>
+          }
+
+          @if (appointmentsLoading) {
+            <p class="notice" role="status">Loading appointments…</p>
+          } @else if (appointmentsError) {
+            <p class="notice error" role="alert">{{ appointmentsError }}</p>
+          } @else if (visibleAppointments.length === 0) {
+            <div class="empty-state">
+              <h3>No appointments in this view</h3>
+              <p>
+                {{ appointmentTab === 'upcoming'
+                  ? 'Upcoming appointments assigned to you will appear here.'
+                  : 'No appointments match the selected tab and status filter.' }}
+              </p>
+            </div>
+          } @else {
+            <div class="appointment-list">
+              @for (appointment of visibleAppointments; track appointment.appointmentId) {
+                <article class="appointment-card">
+                  <div class="appointment-date">
+                    <strong>{{ formatDate(appointment.appointmentDate) }}</strong>
+                    <span>{{ formatTime(appointment.startTime) }}–{{ formatTime(appointment.endTime) }}</span>
+                  </div>
+                  <div class="appointment-details">
+                    <h3>Patient #{{ appointment.patientId }} · Appointment #{{ appointment.appointmentId }}</h3>
+                    <p>{{ appointment.reason || 'No reason provided' }}</p>
+                    <span
+                      class="status"
+                      [class.pending]="appointment.status === 'Pending'"
+                      [class.confirmed]="appointment.status === 'Confirmed'"
+                      [class.completed]="appointment.status === 'Completed'"
+                      [class.cancelled]="appointment.status === 'Cancelled'"
+                    >
+                      {{ appointment.status }}
+                    </span>
+                  </div>
+                  @if (confirmingCancellationId === appointment.appointmentId) {
+                    <div class="confirmation">
+                      <span>Cancel this appointment?</span>
+                      <button
+                        class="button button-danger"
+                        type="button"
+                        [disabled]="appointmentActionId !== null"
+                        (click)="confirmCancellation(appointment.appointmentId)"
+                      >
+                        Confirm cancel
+                      </button>
+                      <button class="text-button" type="button" (click)="keepAppointment()">Keep</button>
+                    </div>
+                  } @else {
+                    <div class="actions">
+                      <button
+                        class="text-button"
+                        type="button"
+                        (click)="viewAppointmentDetails(appointment.appointmentId)"
+                      >
+                        {{ selectedAppointment?.appointmentId === appointment.appointmentId ? 'Hide details' : 'Details' }}
+                      </button>
+                      @if (appointment.status === 'Pending') {
+                        <button
+                          class="button button-primary"
+                          type="button"
+                          [disabled]="appointmentActionId !== null"
+                          (click)="requestStatusChange(appointment, 'Confirmed')"
+                        >
+                          Confirm
+                        </button>
+                      }
+                      @if (appointment.status === 'Confirmed') {
+                        <button
+                          class="button button-primary"
+                          type="button"
+                          [disabled]="appointmentActionId !== null"
+                          (click)="requestStatusChange(appointment, 'Completed')"
+                        >
+                          Complete
+                        </button>
+                      }
+                      @if (appointment.status === 'Pending' || appointment.status === 'Confirmed') {
+                        <button
+                          class="text-button cancel-link"
+                          type="button"
+                          [disabled]="appointmentActionId !== null"
+                          (click)="requestStatusChange(appointment, 'Cancelled')"
+                        >
+                          Cancel
+                        </button>
+                      }
+                      @if (appointmentActionId === appointment.appointmentId) {
+                        <span role="status">Saving…</span>
+                      }
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+          }
+
+          @if (appointmentDetailLoading) {
+            <p class="notice" role="status">Loading appointment details…</p>
+          }
+          @if (appointmentDetailError) {
+            <p class="notice error" role="alert">{{ appointmentDetailError }}</p>
+          }
+          @if (selectedAppointment; as detail) {
+            <article class="detail-card" aria-label="Appointment details">
+              <div class="section-heading">
+                <h3>Appointment #{{ detail.appointmentId }}</h3>
+                <button class="text-button" type="button" (click)="selectedAppointment = null">Close</button>
+              </div>
+              <p><span>Patient ID</span><strong>#{{ detail.patientId }}</strong></p>
+              <p><span>Date</span><strong>{{ formatDate(detail.appointmentDate) }}</strong></p>
+              <p><span>Time</span><strong>{{ formatTime(detail.startTime) }}–{{ formatTime(detail.endTime) }}</strong></p>
+              <p><span>Status</span><strong>{{ detail.status }}</strong></p>
+              <p><span>Reason</span><strong>{{ detail.reason || 'Not specified' }}</strong></p>
+              <p><span>Booked on</span><strong>{{ detail.createdAt | date:'medium' }}</strong></p>
+            </article>
+          }
+        </section>
+
+        <section id="availability" class="section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SCHEDULE SETTINGS</p>
+              <h2>My availability</h2>
+            </div>
+            @if (!availabilityFormVisible) {
+              <button class="button button-primary" type="button" (click)="beginAddAvailability()">
+                Add availability
+              </button>
+            }
+          </div>
+          @if (availabilityMessage) {
+            <p class="notice success" role="status">{{ availabilityMessage }}</p>
+          }
+          @if (availabilityError) {
+            <p class="notice error" role="alert">{{ availabilityError }}</p>
+          }
+          @if (availabilityFormVisible) {
+            <form class="availability-form" [formGroup]="availabilityForm" (ngSubmit)="saveAvailability()">
+              <label>
+                Date
+                <input type="date" formControlName="availableDate" [min]="clinicToday" />
+                @if (availabilityForm.controls.availableDate.touched && availabilityForm.controls.availableDate.invalid) {
+                  <small>Select a future date.</small>
+                }
+              </label>
+              <label>
+                Start time
+                <input type="time" formControlName="startTime" [min]="minAvailabilityTime" />
+                @if (availabilityForm.controls.startTime.touched && availabilityForm.controls.startTime.invalid) {
+                  <small>Select a start time.</small>
+                }
+              </label>
+              <label>
+                End time
+                <input type="time" formControlName="endTime" />
+                @if (availabilityForm.controls.endTime.touched && availabilityForm.controls.endTime.invalid) {
+                  <small>Select an end time.</small>
+                }
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="isAvailable" />
+                Available for booking
+              </label>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit" [disabled]="availabilitySaving">
+                  {{ availabilitySaving ? 'Saving…' : (editingAvailabilityId === null ? 'Add schedule' : 'Save changes') }}
+                </button>
+                <button
+                  class="button button-secondary"
+                  type="button"
+                  [disabled]="availabilitySaving"
+                  (click)="cancelAvailabilityEdit()"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          }
+          @if (availabilitiesLoading) {
+            <p class="notice" role="status">Loading availability…</p>
+          } @else if (availabilitiesError) {
+            <p class="notice error" role="alert">{{ availabilitiesError }}</p>
+          } @else if (availabilities.length === 0) {
+            <div class="empty-state">
+              <h3>No availability added</h3>
+              <p>Add dates and time ranges when patients can book you.</p>
+            </div>
+          } @else {
+            <div class="availability-list">
+              @for (item of availabilities; track item.availabilityId) {
+                <article class="availability-card">
+                  <div class="availability-info">
+                    <strong>{{ formatDate(item.availableDate) }}</strong>
+                    <span>{{ formatTime(item.startTime) }}–{{ formatTime(item.endTime) }}</span>
+                    <span
+                      class="status"
+                      [class.confirmed]="item.isAvailable"
+                      [class.cancelled]="!item.isAvailable"
+                    >
+                      {{ item.isAvailable ? 'Available' : 'Unavailable' }}
+                    </span>
+                    @if (isPastAvailability(item)) {
+                      <span class="status">Past</span>
+                    }
+                  </div>
+                  @if (confirmingAvailabilityDeleteId === item.availabilityId) {
+                    <div class="confirmation">
+                      <span>Delete this availability?</span>
+                      <button
+                        class="button button-danger"
+                        type="button"
+                        [disabled]="deletingAvailabilityId !== null"
+                        (click)="deleteAvailability(item.availabilityId)"
+                      >
+                        Confirm delete
+                      </button>
+                      <button class="text-button" type="button" (click)="cancelAvailabilityDelete()">Keep</button>
+                    </div>
+                  } @else {
+                    <div class="actions">
+                      @if (!isPastAvailability(item)) {
+                        <button class="text-button" type="button" (click)="editAvailability(item)">Edit</button>
+                      }
+                      <button
+                        class="text-button cancel-link"
+                        type="button"
+                        [disabled]="deletingAvailabilityId !== null"
+                        (click)="requestAvailabilityDelete(item.availabilityId)"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+          }
+        </section>
+
+        <section id="profile" class="section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">YOUR DETAILS</p>
+              <h2>Doctor profile</h2>
+            </div>
+          </div>
+          <div class="profile-grid">
+            <p><span>Name</span><strong>{{ doctor.fullName }}</strong></p>
+            <p><span>Speciality</span><strong>{{ doctor.specialityName }}</strong></p>
+            <p><span>Qualification</span><strong>{{ doctor.qualification }}</strong></p>
+            <p><span>Experience</span><strong>{{ doctor.experienceYears }} years</strong></p>
+            <p><span>Consultation fee</span><strong>{{ doctor.consultationFee | currency:'INR':'symbol':'1.0-0' }}</strong></p>
+            <p><span>Active status</span><strong>{{ doctor.isActive ? 'Active' : 'Inactive' }}</strong></p>
+            @if (doctor.bio) {
+              <p class="bio"><span>Biography</span><strong>{{ doctor.bio }}</strong></p>
+            }
+          </div>
+          <p class="muted">Doctor profile details are managed by an administrator.</p>
+        </section>
+
+        <footer class="footer">CarePoint · Your health, in good hands.</footer>
+      }
+    </main>
+  </div>
+</div>

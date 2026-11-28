@@ -10,6 +10,16 @@ namespace Doctor_Appointment_System.Services;
 public class AuthService : IAuthService
 {
     private const string PatientRole = "Patient";
+    private const string DoctorRole = "Doctor";
+    private const string AdminRole = "Admin";
+
+    private static readonly string[] SupportedRoles =
+    [
+        PatientRole,
+        DoctorRole,
+        AdminRole
+    ];
+
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
@@ -90,7 +100,7 @@ public class AuthService : IAuthService
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            var token = _jwtTokenService.CreateToken(user, patient, PatientRole);
+            var token = _jwtTokenService.CreateToken(user, PatientRole);
             return new AuthResult(
                 true,
                 StatusCodes.Status201Created,
@@ -100,7 +110,7 @@ public class AuthService : IAuthService
                     "Patient registered successfully",
                     token.Token,
                     token.ExpiresAt,
-                    new AuthUserResponse(patient.PatientId, user.FullName, user.Email!, PatientRole)));
+                    new AuthUserResponse(patient.PatientId, user.FullName, user.Email!, PatientRole, user.Id)));
         }
         catch (Exception exception)
         {
@@ -112,6 +122,47 @@ public class AuthService : IAuthService
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        return await LoginAsync(request, PatientRole, cancellationToken);
+    }
+
+    public async Task<AuthResult> LoginAsync(
+        LoginRequest request,
+        string expectedRole,
+        CancellationToken cancellationToken = default)
+    {
+        var role = SupportedRoles.FirstOrDefault(
+            supportedRole => string.Equals(
+                supportedRole,
+                expectedRole,
+                StringComparison.OrdinalIgnoreCase));
+        if (role is null)
+        {
+            throw new ArgumentOutOfRangeException(nameof(expectedRole), "Unsupported authentication role.");
+        }
+
+        try
+        {
+            return await AuthenticateForRoleAsync(request, role, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Authentication failed unexpectedly for role {Role}.", role);
+            return new AuthResult(
+                false,
+                StatusCodes.Status500InternalServerError,
+                "Authentication could not be completed");
+        }
+    }
+
+    private async Task<AuthResult> AuthenticateForRoleAsync(
+        LoginRequest request,
+        string role,
+        CancellationToken cancellationToken)
+    {
         var email = request.Email.Trim();
         var invalidCredentials = new AuthResult(false, StatusCodes.Status401Unauthorized, "Invalid email or password");
         var user = await _userManager.FindByEmailAsync(email);
@@ -122,20 +173,66 @@ public class AuthService : IAuthService
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-        if (!roles.Contains(PatientRole, StringComparer.OrdinalIgnoreCase))
+        if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase))
         {
             return invalidCredentials;
         }
 
-        var patient = await _dbContext.Patients
-            .AsNoTracking()
-            .SingleOrDefaultAsync(currentPatient => currentPatient.UserId == user.Id, cancellationToken);
-        if (patient is null)
+        AuthUserResponse authUser;
+        switch (role)
         {
-            return invalidCredentials;
+            case PatientRole:
+            {
+                var patient = await _dbContext.Patients
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(currentPatient => currentPatient.UserId == user.Id, cancellationToken);
+                if (patient is null)
+                {
+                    _logger.LogError("User {UserId} has the Patient role but no patient profile.", user.Id);
+                    return invalidCredentials;
+                }
+
+                authUser = new AuthUserResponse(
+                    patient.PatientId,
+                    user.FullName,
+                    user.Email ?? string.Empty,
+                    PatientRole,
+                    user.Id);
+                break;
+            }
+            case DoctorRole:
+            {
+                var doctor = await _dbContext.Doctors
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(currentDoctor => currentDoctor.UserId == user.Id, cancellationToken);
+                if (doctor is null)
+                {
+                    _logger.LogError("User {UserId} has the Doctor role but no doctor profile.", user.Id);
+                    return invalidCredentials;
+                }
+
+                authUser = new AuthUserResponse(
+                    null,
+                    user.FullName,
+                    user.Email ?? string.Empty,
+                    DoctorRole,
+                    user.Id,
+                    doctor.DoctorId);
+                break;
+            }
+            case AdminRole:
+                authUser = new AuthUserResponse(
+                    null,
+                    user.FullName,
+                    user.Email ?? string.Empty,
+                    AdminRole,
+                    user.Id);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(role), "Unsupported authentication role.");
         }
 
-        var token = _jwtTokenService.CreateToken(user, patient, PatientRole);
+        var token = _jwtTokenService.CreateToken(user, role);
         return new AuthResult(
             true,
             StatusCodes.Status200OK,
@@ -145,6 +242,6 @@ public class AuthService : IAuthService
                 "Login successful",
                 token.Token,
                 token.ExpiresAt,
-                new AuthUserResponse(patient.PatientId, user.FullName, user.Email!, PatientRole)));
+                authUser));
     }
 }

@@ -28,7 +28,7 @@ public sealed class JwtTokenService : IJwtTokenService
         }
     }
 
-    public JwtTokenResult CreateToken(ApplicationUser user, Patient patient, string role)
+    public JwtTokenResult CreateToken(ApplicationUser user, string role)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_options.ExpiryMinutes);
         var claims = new List<Claim>

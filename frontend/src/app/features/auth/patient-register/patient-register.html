@@ -1,10 +1,14 @@
+<div class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </div>
 
-<div class="register-page">
-  <section class="register-form">
-    <h1>Patient Registration Form</h1>
+    <h1>Patient Registration</h1>
+    <p class="subtitle">Create your patient account to book doctor appointments</p>
 
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-
+    <form class="auth-form" [formGroup]="registerForm" (ngSubmit)="onSubmit()">
       <div class="form-field">
         <label for="fullName">Full name <span>*</span></label>
         <input
@@ -12,7 +16,11 @@
           type="text"
           formControlName="fullName"
           placeholder="Enter your full name"
+          maxlength="100"
         />
+        @if (registerForm.controls.fullName.touched && registerForm.controls.fullName.invalid) {
+          <small class="field-error">Full name is required (max 100 characters).</small>
+        }
       </div>
 
       <div class="form-field">
@@ -22,7 +30,11 @@
           type="email"
           formControlName="email"
           placeholder="Enter your email address"
+          autocomplete="email"
         />
+        @if (registerForm.controls.email.touched && registerForm.controls.email.invalid) {
+          <small class="field-error">Enter a valid email address.</small>
+        }
       </div>
 
       <div class="form-field">
@@ -31,8 +43,15 @@
           id="password"
           type="password"
           formControlName="password"
-          placeholder="Create a password"
+          placeholder="Create a strong password"
+          autocomplete="new-password"
         />
+        <small class="field-hint">
+          At least 8 characters with uppercase, lowercase, number, and special character.
+        </small>
+        @if (registerForm.controls.password.touched && registerForm.controls.password.invalid) {
+          <small class="field-error">Password must be at least 8 characters.</small>
+        }
       </div>
 
       <div class="form-field">
@@ -41,7 +60,11 @@
           id="dateOfBirth"
           type="date"
           formControlName="dateOfBirth"
+          [max]="maxDob"
         />
+        @if (registerForm.controls.dateOfBirth.touched && registerForm.controls.dateOfBirth.invalid) {
+          <small class="field-error">Date of birth is required.</small>
+        }
       </div>
 
       <div class="form-field">
@@ -52,6 +75,9 @@
           <option value="Female">Female</option>
           <option value="Other">Other</option>
         </select>
+        @if (registerForm.controls.gender.touched && registerForm.controls.gender.invalid) {
+          <small class="field-error">Please select a gender.</small>
+        }
       </div>
 
       <div class="form-field">
@@ -61,7 +87,11 @@
           type="tel"
           formControlName="phoneNumber"
           placeholder="Enter your phone number"
+          maxlength="15"
         />
+        @if (registerForm.controls.phoneNumber.touched && registerForm.controls.phoneNumber.invalid) {
+          <small class="field-error">Phone number is required (max 15 characters).</small>
+        }
       </div>
 
       <div class="form-field">
@@ -70,27 +100,32 @@
           id="address"
           formControlName="address"
           rows="3"
+          maxlength="250"
           placeholder="Enter your address"
         ></textarea>
+        @if (registerForm.controls.address.touched && registerForm.controls.address.invalid) {
+          <small class="field-error">Address is required (max 250 characters).</small>
+        }
       </div>
 
       @if (successMessage) {
-        <p class="success-message">{{ successMessage }}</p>
+        <p class="success-message" role="status">{{ successMessage }}</p>
       }
 
       @if (errorMessage) {
-        <p class="error-message">{{ errorMessage }}</p>
+        <p class="error-message" role="alert">{{ errorMessage }}</p>
       }
 
-      <button type="submit" [disabled]="isSubmitting">
+      <button class="auth-submit" type="submit" [disabled]="isSubmitting">
         {{ isSubmitting ? 'Creating Account...' : 'Create Account' }}
       </button>
 
-      <p class="login-link">
-        Already have an account?
-        <a href="/patient-login">Login here</a>
-      </p>
-
+      <div class="auth-footer-links">
+        <span>
+          Already have an account?
+          <a routerLink="/patient-login">Login here</a>
+        </span>
+      </div>
     </form>
   </section>
 </div>

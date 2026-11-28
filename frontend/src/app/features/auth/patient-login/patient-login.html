@@ -1,9 +1,20 @@
-<div class="login-page">
-  <section class="login-form">
-    <h1>Patient Login</h1>
-    <p class="subtitle">Sign in to manage your appointments</p>
+<div class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>CarePoint</span>
+    </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <nav class="portal-tabs" aria-label="Select portal login">
+      <a class="portal-tab active" routerLink="/patient-login">Patient</a>
+      <a class="portal-tab" routerLink="/doctor-login">Doctor</a>
+      <a class="portal-tab" routerLink="/admin-login">Admin</a>
+    </nav>
+
+    <h1>Patient Login</h1>
+    <p class="subtitle">Sign in to manage your appointments and health profile</p>
+
+    <form class="auth-form" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-field">
         <label for="email">Email address <span>*</span></label>
         <input
@@ -11,8 +22,11 @@
           type="email"
           formControlName="email"
           placeholder="Enter your email address"
-          required
+          autocomplete="email"
         />
+        @if (loginForm.controls.email.touched && loginForm.controls.email.invalid) {
+          <small class="field-error">Enter a valid email address.</small>
+        }
       </div>
 
       <div class="form-field">
@@ -22,28 +36,31 @@
           type="password"
           formControlName="password"
           placeholder="Enter your password"
-          required
+          autocomplete="current-password"
         />
+        @if (loginForm.controls.password.touched && loginForm.controls.password.invalid) {
+          <small class="field-error">Password is required.</small>
+        }
       </div>
 
       @if (successMessage) {
-        <p class="success-message">{{ successMessage }}</p>
+        <p class="success-message" role="status">{{ successMessage }}</p>
       }
 
       @if (errorMessage) {
-        <p class="error-message">{{ errorMessage }}</p>
+        <p class="error-message" role="alert">{{ errorMessage }}</p>
       }
 
-      <button type="submit" [disabled]="isSubmitting">
-        {{ isSubmitting ? 'Signing in...' : 'Login' }}
+      <button class="auth-submit" type="submit" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Signing in...' : 'Login as Patient' }}
       </button>
 
-      <p class="register-link">
-        Don't have an account?
-        <a href="/patient-register">Register here</a>
-      </p>
-
-      <a class="admin-link" href="/admin-login">Admin login</a>
+      <div class="auth-footer-links">
+        <span>
+          Don't have an account?
+          <a routerLink="/patient-register">Register here</a>
+        </span>
+      </div>
     </form>
   </section>
 </div>

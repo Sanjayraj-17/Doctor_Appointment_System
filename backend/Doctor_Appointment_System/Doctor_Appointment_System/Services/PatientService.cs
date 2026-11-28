@@ -1,4 +1,5 @@
 using Doctor_Appointment_System.Data;
+using Doctor_Appointment_System.Configuration;
 using Doctor_Appointment_System.DTOs.Patients;
 using Doctor_Appointment_System.Enums;
 using Doctor_Appointment_System.Services.Interfaces;
@@ -9,10 +10,14 @@ namespace Doctor_Appointment_System.Services;
 public sealed class PatientService : IPatientService
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IConfiguration _configuration;
 
-    public PatientService(ApplicationDbContext dbContext)
+    public PatientService(
+        ApplicationDbContext dbContext,
+        IConfiguration configuration)
     {
         _dbContext = dbContext;
+        _configuration = configuration;
     }
 
     public async Task<PatientProfileResponse?> GetProfileAsync(
@@ -33,6 +38,33 @@ public sealed class PatientService : IPatientService
             .SingleOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<PatientProfileResponse?> UpdateProfileAsync(
+        string userId,
+        UpdatePatientProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var patient = await _dbContext.Patients
+            .Include(item => item.User)
+            .SingleOrDefaultAsync(
+                item => item.UserId == userId,
+                cancellationToken);
+
+        if (patient is null)
+        {
+            return null;
+        }
+
+        patient.User.FullName = request.FullName.Trim();
+        patient.DateOfBirth = request.DateOfBirth!.Value;
+        patient.Gender = request.Gender!.Value;
+        patient.PhoneNumber = request.PhoneNumber.Trim();
+        patient.Address = request.Address.Trim();
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return await GetProfileAsync(userId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<PatientAppointmentResponse>?> GetAppointmentsAsync(
         string userId,
         bool historyOnly,
@@ -49,7 +81,10 @@ public sealed class PatientService : IPatientService
             return null;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var clinicNow = TimeZoneInfo.ConvertTime(
+            DateTimeOffset.UtcNow,
+            ClinicTimeZoneResolver.Resolve(_configuration));
+        var today = DateOnly.FromDateTime(clinicNow.DateTime);
         var appointmentsQuery = _dbContext.Appointments
             .AsNoTracking()
             .Include(appointment => appointment.Doctor)
@@ -59,7 +94,9 @@ public sealed class PatientService : IPatientService
         if (historyOnly)
         {
             appointmentsQuery = appointmentsQuery.Where(appointment =>
-                appointment.Status == AppointmentStatus.Completed || appointment.AppointmentDate < today);
+                appointment.Status == AppointmentStatus.Completed ||
+                appointment.Status == AppointmentStatus.Cancelled ||
+                appointment.AppointmentDate < today);
         }
 
         var appointments = await appointmentsQuery

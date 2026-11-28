@@ -1,10 +1,11 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { getApiErrorMessage } from '../../../core/api/api-error';
 import { AuthService } from '../../../core/auth/auth.service';
 
 @Component({
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   selector: 'app-patient-login',
   standalone: true,
   styleUrl: './patient-login.css',
@@ -13,6 +14,8 @@ import { AuthService } from '../../../core/auth/auth.service';
 export class PatientLogin {
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   isSubmitting = false;
   successMessage = '';
@@ -20,7 +23,7 @@ export class PatientLogin {
 
   loginForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', Validators.required]
+    password: ['', Validators.required],
   });
 
   onSubmit(): void {
@@ -34,17 +37,23 @@ export class PatientLogin {
 
     this.isSubmitting = true;
     this.authService.login(this.loginForm.getRawValue()).subscribe({
-      next: response => {
+      next: (response) => {
         this.authService.saveSession(response);
         this.isSubmitting = false;
-        this.successMessage = this.authService.navigateToDashboardIfConfigured()
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        this.successMessage = this.authService.navigateToDashboardIfConfigured(returnUrl)
           ? ''
-          : 'Login successful. The Patient Dashboard route is not configured yet.';
+          : 'Login successful.';
+        this.cdr.markForCheck();
       },
-      error: (error: HttpErrorResponse) => {
-        this.errorMessage = error.error?.message || 'Login failed. Please check your credentials.';
+      error: (error: unknown) => {
+        this.errorMessage = getApiErrorMessage(
+          error,
+          'Login failed. Please check your credentials.',
+        );
         this.isSubmitting = false;
-      }
+        this.cdr.markForCheck();
+      },
     });
   }
 }

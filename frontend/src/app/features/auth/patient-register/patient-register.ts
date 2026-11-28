@@ -1,24 +1,23 @@
-
-import { Component, inject } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { getApiErrorMessage } from '../../../core/api/api-error';
 import { AuthService } from '../../../core/auth/auth.service';
+import { getClinicDate } from '../../../core/utils/clinic-time';
 
 @Component({
   selector: 'app-patient-register',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './patient-register.html',
-  styleUrl: './patient-register.css'
+  styleUrl: './patient-register.css',
 })
 export class PatientRegister {
   private readonly authService = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly cdr = inject(ChangeDetectorRef);
 
+  readonly maxDob = getClinicDate();
   isSubmitting = false;
   successMessage = '';
   errorMessage = '';
@@ -30,7 +29,7 @@ export class PatientRegister {
     dateOfBirth: ['', Validators.required],
     gender: ['', Validators.required],
     phoneNumber: ['', [Validators.required, Validators.maxLength(15)]],
-    address: ['', [Validators.required, Validators.maxLength(250)]]
+    address: ['', [Validators.required, Validators.maxLength(250)]],
   });
 
   onSubmit(): void {
@@ -42,30 +41,31 @@ export class PatientRegister {
       return;
     }
 
+    if (this.registerForm.controls.dateOfBirth.value > this.maxDob) {
+      this.errorMessage = 'Date of birth cannot be in the future.';
+      return;
+    }
+
     this.isSubmitting = true;
 
     this.authService.register(this.registerForm.getRawValue()).subscribe({
-      next: response => {
+      next: (response) => {
         this.authService.saveSession(response);
         this.registerForm.reset();
         this.isSubmitting = false;
         this.successMessage = this.authService.navigateToDashboardIfConfigured()
           ? ''
-          : 'Registration successful. The Patient Dashboard route is not configured yet.';
+          : 'Registration successful.';
+        this.cdr.markForCheck();
       },
-      error: (error: HttpErrorResponse) => {
-        this.errorMessage = this.getErrorMessage(error, 'Registration failed. Please try again.');
+      error: (error: unknown) => {
+        this.errorMessage = getApiErrorMessage(
+          error,
+          'Registration failed. Please review your details and try again.',
+        );
         this.isSubmitting = false;
-      }
+        this.cdr.markForCheck();
+      },
     });
-  }
-
-  private getErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    const apiErrors = error.error?.errors as Record<string, string[]> | undefined;
-    const validationMessage = apiErrors
-      ? Object.values(apiErrors).flat().join(' ')
-      : '';
-
-    return validationMessage || error.error?.message || fallback;
   }
 }
