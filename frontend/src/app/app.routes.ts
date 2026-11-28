@@ -65,6 +65,14 @@ export const routes: Routes = [
         .then((m) => m.AdminDashboard),
   },
   {
+    path: 'admin-add-doctor',
+    canActivate: [authGuard, roleGuard],
+    data: { requiredRole: 'Admin' },
+    loadComponent: () =>
+      import('./features/admin-add-doctor/admin-add-doctor')
+        .then((m) => m.AdminAddDoctor),
+  },
+  {
     path: '**',
     redirectTo: 'patient-login',
   },

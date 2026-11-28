@@ -1,0 +1,112 @@
+<div class="add-doctor-page">
+  <header class="page-header">
+    <div>
+      <h1>Add Doctor</h1>
+      <p>Create a doctor account and profile.</p>
+    </div>
+
+    <a routerLink="/admin-dashboard">Back to Dashboard</a>
+  </header>
+
+  <form class="doctor-form" (ngSubmit)="saveDoctor()">
+    <label for="fullName">Full Name</label>
+    <input
+      id="fullName"
+      name="fullName"
+      type="text"
+      maxlength="100"
+      [(ngModel)]="doctor.fullName"
+      required
+    />
+
+    <label for="email">Email</label>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      [(ngModel)]="doctor.email"
+      required
+    />
+
+    <label for="password">Temporary Password</label>
+    <input
+      id="password"
+      name="password"
+      type="password"
+      minlength="8"
+      [(ngModel)]="doctor.password"
+      required
+    />
+
+    <label for="phoneNumber">Phone Number</label>
+    <input
+      id="phoneNumber"
+      name="phoneNumber"
+      type="tel"
+      maxlength="15"
+      [(ngModel)]="doctor.phoneNumber"
+      required
+    />
+
+    <label for="specialityId">Speciality ID</label>
+    <input
+      id="specialityId"
+      name="specialityId"
+      type="number"
+      min="1"
+      [(ngModel)]="doctor.specialityId"
+      required
+    />
+
+    <label for="qualification">Qualification</label>
+    <input
+      id="qualification"
+      name="qualification"
+      type="text"
+      maxlength="150"
+      [(ngModel)]="doctor.qualification"
+      required
+    />
+
+    <label for="experienceYears">Experience (years)</label>
+    <input
+      id="experienceYears"
+      name="experienceYears"
+      type="number"
+      min="0"
+      max="60"
+      [(ngModel)]="doctor.experienceYears"
+      required
+    />
+
+    <label for="consultationFee">Consultation Fee (₹)</label>
+    <input
+      id="consultationFee"
+      name="consultationFee"
+      type="number"
+      min="0"
+      [(ngModel)]="doctor.consultationFee"
+      required
+    />
+
+    <label for="bio">Bio (optional)</label>
+    <textarea
+      id="bio"
+      name="bio"
+      rows="4"
+      maxlength="1000"
+      [(ngModel)]="doctor.bio"
+    ></textarea>
+
+    @if (message) {
+      <p [class]="isError ? 'error-message' : 'success-message'" role="status">{{ message }}</p>
+    }
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="isSaving">
+        {{ isSaving ? 'Saving...' : 'Save Doctor' }}
+      </button>
+      <a routerLink="/admin-dashboard" class="cancel-button">Cancel</a>
+    </div>
+  </form>
+</div>
